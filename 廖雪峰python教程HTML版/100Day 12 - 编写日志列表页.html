@@ -1,0 +1,135 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 12 - 编写日志列表页</h4>
+                    <div class="x-wiki-info"><span>41次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>MVVM模式不但可用于Form表单，在复杂的管理页面中也能大显身手。例如，分页显示Blog的功能，我们先把后端代码写出来：</p>
+<p>在<code>apis.py</code>中定义一个<code>Page</code>类用于存储分页信息：</p>
+<pre><code>class Page(object):
+    def __init__(self, item_count, page_index=1, page_size=10):
+        self.item_count = item_count
+        self.page_size = page_size
+        self.page_count = item_count // page_size + (1 if item_count % page_size &gt; 0 else 0)
+        if (item_count == 0) or (page_index &lt; 1) or (page_index &gt; self.page_count):
+            self.offset = 0
+            self.limit = 0
+            self.page_index = 1
+        else:
+            self.page_index = page_index
+            self.offset = self.page_size * (page_index - 1)
+            self.limit = self.page_size
+        self.has_next = self.page_index &lt; self.page_count
+        self.has_previous = self.page_index &gt; 1
+</code></pre><p>在<code>urls.py</code>中实现API：</p>
+<pre><code>def _get_blogs_by_page():
+    total = Blog.count_all()
+    page = Page(total, _get_page_index())
+    blogs = Blog.find_by(&#39;order by created_at desc limit ?,?&#39;, page.offset, page.limit)
+    return blogs, page
+
+@api
+@get(&#39;/api/blogs&#39;)
+def api_get_blogs():
+    blogs, page = _get_blogs_by_page()
+    return dict(blogs=blogs, page=page)
+</code></pre><p>返回模板页面：</p>
+<pre><code>@view(&#39;manage_blog_list.html&#39;)
+@get(&#39;/manage/blogs&#39;)
+def manage_blogs():
+    return dict(page_index=_get_page_index(), user=ctx.request.user)
+</code></pre><p>模板页面首先通过API：<code>GET /api/blogs?page=?</code>拿到Model：</p>
+<pre><code>{
+    &quot;page&quot;: {
+        &quot;has_next&quot;: true,
+        &quot;page_index&quot;: 1,
+        &quot;page_count&quot;: 2,
+        &quot;has_previous&quot;: false,
+        &quot;item_count&quot;: 12
+    },
+    &quot;blogs&quot;: [...]
+}
+</code></pre><p>然后，通过Vue初始化MVVM：</p>
+<pre><code>&lt;script&gt;
+function initVM(data) {
+    $(&#39;#div-blogs&#39;).show();
+    var vm = new Vue({
+        el: &#39;#div-blogs&#39;,
+        data: {
+            blogs: data.blogs,
+            page: data.page
+        },
+        methods: {
+            previous: function () {
+                gotoPage(this.page.page_index - 1);
+            },
+            next: function () {
+                gotoPage(this.page.page_index + 1);
+            },
+            edit_blog: function (blog) {
+                location.assign(&#39;/manage/blogs/edit/&#39; + blog.id);
+            }
+        }
+    });
+}
+
+$(function() {
+    getApi(&#39;/api/blogs?page={{ page_index }}&#39;, function (err, results) {
+        if (err) {
+            return showError(err);
+        }
+        $(&#39;#div-loading&#39;).hide();
+        initVM(results);
+    });
+});
+&lt;/script&gt;
+</code></pre><p>View的容器是<code>#div-blogs</code>，包含一个table，我们用<code>v-repeat</code>可以把Model的数组<code>blogs</code>直接变成多行的<code>&lt;tr&gt;</code>：</p>
+<pre><code>&lt;div id=&quot;div-blogs&quot; class=&quot;uk-width-1-1&quot; style=&quot;display:none&quot;&gt;
+    &lt;table class=&quot;uk-table uk-table-hover&quot;&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th class=&quot;uk-width-5-10&quot;&gt;标题 / 摘要&lt;/th&gt;
+                &lt;th class=&quot;uk-width-2-10&quot;&gt;作者&lt;/th&gt;
+                &lt;th class=&quot;uk-width-2-10&quot;&gt;创建时间&lt;/th&gt;
+                &lt;th class=&quot;uk-width-1-10&quot;&gt;操作&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr v-repeat=&quot;blog: blogs&quot; &gt;
+                &lt;td&gt;
+                    &lt;a target=&quot;_blank&quot; v-attr=&quot;href: &#39;/blog/&#39;+blog.id&quot; v-text=&quot;blog.name&quot;&gt;&lt;/a&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;a target=&quot;_blank&quot; v-attr=&quot;href: &#39;/user/&#39;+blog.user_id&quot; v-text=&quot;blog.user_name&quot;&gt;&lt;/a&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;span v-text=&quot;blog.created_at.toDateTime()&quot;&gt;&lt;/span&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;a href=&quot;#0&quot; v-on=&quot;click: edit_blog(blog)&quot;&gt;&lt;i class=&quot;uk-icon-edit&quot;&gt;&lt;/i&gt;
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;div class=&quot;uk-width-1-1 uk-text-center&quot;&gt;
+        &lt;ul class=&quot;uk-pagination&quot;&gt;
+            &lt;li v-if=&quot;! page.has_previous&quot; class=&quot;uk-disabled&quot;&gt;&lt;span&gt;&lt;i class=&quot;uk-icon-angle-double-left&quot;&gt;&lt;/i&gt;&lt;/span&gt;&lt;/li&gt;
+            &lt;li v-if=&quot;page.has_previous&quot;&gt;&lt;a v-on=&quot;click: previous()&quot; href=&quot;#0&quot;&gt;&lt;i class=&quot;uk-icon-angle-double-left&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/li&gt;
+            &lt;li class=&quot;uk-active&quot;&gt;&lt;span v-text=&quot;page.page_index&quot;&gt;&lt;/span&gt;&lt;/li&gt;
+            &lt;li v-if=&quot;! page.has_next&quot; class=&quot;uk-disabled&quot;&gt;&lt;span&gt;&lt;i class=&quot;uk-icon-angle-double-right&quot;&gt;&lt;/i&gt;&lt;/span&gt;&lt;/li&gt;
+            &lt;li v-if=&quot;page.has_next&quot;&gt;&lt;a v-on=&quot;click: next()&quot; href=&quot;#0&quot;&gt;&lt;i class=&quot;uk-icon-angle-double-right&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre><p>往Model的blogs数组中增加一个Blog元素，table就神奇地增加了一行；把blogs数组的某个元素删除，table就神奇地减少了一行。所有复杂的Model-View的映射逻辑全部由MVVM框架完成，我们只需要在HTML中写上<code>v-repeat</code>指令，就什么都不用管了。</p>
+<p>可以把<code>v-repeat=&quot;blog: blogs&quot;</code>看成循环代码，所以，可以在一个<code>&lt;tr&gt;</code>内部引用循环变量<code>blog</code>。<code>v-text</code>和<code>v-attr</code>指令分别用于生成文本和DOM节点属性。</p>
+<p>完整的Blog列表页如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0014025813192591fb147e5d8564257b6a94ca831a7f39f000" alt="awesomepy-manage-blogs"></p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

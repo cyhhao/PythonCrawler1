@@ -1,0 +1,52 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 6 - 添加配置文件</h4>
+                    <div class="x-wiki-info"><span>234次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>有了Web框架和ORM框架，我们就可以开始装配App了。</p>
+<p>通常，一个Web App在运行时都需要读取配置文件，比如数据库的用户名、口令等，在不同的环境中运行时，Web App可以通过读取不同的配置文件来获得正确的配置。</p>
+<p>由于Python本身语法简单，完全可以直接用Python源代码来实现配置，而不需要再解析一个单独的<code>.properties</code>或者<code>.yaml</code>等配置文件。</p>
+<p>默认的配置文件应该完全符合本地开发环境，这样，无需任何设置，就可以立刻启动服务器。</p>
+<p>我们把默认的配置文件命名为<code>config_default.py</code>：</p>
+<pre><code># config_default.py
+
+configs = {
+    &#39;db&#39;: {
+        &#39;host&#39;: &#39;127.0.0.1&#39;,
+        &#39;port&#39;: 3306,
+        &#39;user&#39;: &#39;www-data&#39;,
+        &#39;password&#39;: &#39;www-data&#39;,
+        &#39;database&#39;: &#39;awesome&#39;
+    },
+    &#39;session&#39;: {
+        &#39;secret&#39;: &#39;AwEsOmE&#39;
+    }
+}
+</code></pre><p>上述配置文件简单明了。但是，如果要部署到服务器时，通常需要修改数据库的host等信息，直接修改<code>config_default.py</code>不是一个好办法，更好的方法是编写一个<code>config_override.py</code>，用来覆盖某些默认设置：</p>
+<pre><code># config_override.py
+
+configs = {
+    &#39;db&#39;: {
+        &#39;host&#39;: &#39;192.168.0.100&#39;
+    }
+}
+</code></pre><p>把<code>config_default.py</code>作为开发环境的标准配置，把<code>config_override.py</code>作为生产环境的标准配置，我们就可以既方便地在本地开发，又可以随时把应用部署到服务器上。</p>
+<p>应用程序读取配置文件需要优先从<code>config_override.py</code>读取。为了简化读取配置文件，可以把所有配置读取到统一的<code>config.py</code>中：</p>
+<pre><code># config.py
+configs = config_default.configs
+
+try:
+    import config_override
+    configs = merge(configs, config_override.configs)
+except ImportError:
+    pass
+</code></pre><p>这样，我们就完成了App的配置。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

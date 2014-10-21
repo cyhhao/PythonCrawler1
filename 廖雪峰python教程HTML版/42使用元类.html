@@ -1,0 +1,221 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>使用元类</h4>
+                    <div class="x-wiki-info"><span>1308次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><h3 id="type-">type()</h3>
+<p>动态语言和静态语言最大的不同，就是函数和类的定义，不是编译时定义的，而是运行时动态创建的。</p>
+<p>比方说我们要定义一个<code>Hello</code>的class，就写一个<code>hello.py</code>模块：</p>
+<pre><code>class Hello(object):
+    def hello(self, name=&#39;world&#39;):
+        print(&#39;Hello, %s.&#39; % name)
+</code></pre><p>当Python解释器载入<code>hello</code>模块时，就会依次执行该模块的所有语句，执行结果就是动态创建出一个<code>Hello</code>的class对象，测试如下：</p>
+<pre><code>&gt;&gt;&gt; from hello import Hello
+&gt;&gt;&gt; h = Hello()
+&gt;&gt;&gt; h.hello()
+Hello, world.
+&gt;&gt;&gt; print(type(Hello))
+&lt;type &#39;type&#39;&gt;
+&gt;&gt;&gt; print(type(h))
+&lt;class &#39;hello.Hello&#39;&gt;
+</code></pre><p><code>type()</code>函数可以查看一个类型或变量的类型，<code>Hello</code>是一个class，它的类型就是<code>type</code>，而<code>h</code>是一个实例，它的类型就是class <code>Hello</code>。</p>
+<p>我们说class的定义是运行时动态创建的，而创建class的方法就是使用<code>type()</code>函数。</p>
+<p><code>type()</code>函数既可以返回一个对象的类型，又可以创建出新的类型，比如，我们可以通过<code>type()</code>函数创建出<code>Hello</code>类，而无需通过<code>class Hello(object)...</code>的定义：</p>
+<pre><code>&gt;&gt;&gt; def fn(self, name=&#39;world&#39;): # 先定义函数
+...     print(&#39;Hello, %s.&#39; % name)
+...
+&gt;&gt;&gt; Hello = type(&#39;Hello&#39;, (object,), dict(hello=fn)) # 创建Hello class
+&gt;&gt;&gt; h = Hello()
+&gt;&gt;&gt; h.hello()
+Hello, world.
+&gt;&gt;&gt; print(type(Hello))
+&lt;type &#39;type&#39;&gt;
+&gt;&gt;&gt; print(type(h))
+&lt;class &#39;__main__.Hello&#39;&gt;
+</code></pre><p>要创建一个class对象，<code>type()</code>函数依次传入3个参数：</p>
+<ol>
+<li>class的名称；</li>
+<li>继承的父类集合，注意Python支持多重继承，如果只有一个父类，别忘了tuple的单元素写法；</li>
+<li>class的方法名称与函数绑定，这里我们把函数<code>fn</code>绑定到方法名<code>hello</code>上。</li>
+</ol>
+<p>通过<code>type()</code>函数创建的类和直接写class是完全一样的，因为Python解释器遇到class定义时，仅仅是扫描一下class定义的语法，然后调用<code>type()</code>函数创建出class。</p>
+<p>正常情况下，我们都用<code>class Xxx...</code>来定义类，但是，<code>type()</code>函数也允许我们动态创建出类来，也就是说，动态语言本身支持运行期动态创建类，这和静态语言有非常大的不同，要在静态语言运行期创建类，必须构造源代码字符串再调用编译器，或者借助一些工具生成字节码实现，本质上都是动态编译，会非常复杂。</p>
+<h3 id="metaclass">metaclass</h3>
+<p>除了使用<code>type()</code>动态创建类以外，要控制类的创建行为，还可以使用metaclass。</p>
+<p>metaclass，直译为元类，简单的解释就是：</p>
+<p>当我们定义了类以后，就可以根据这个类创建出实例，所以：先定义类，然后创建实例。</p>
+<p>但是如果我们想创建出类呢？那就必须根据metaclass创建出类，所以：先定义metaclass，然后创建类。</p>
+<p>连接起来就是：先定义metaclass，就可以创建类，最后创建实例。</p>
+<p>所以，metaclass允许你创建类或者修改类。换句话说，你可以把类看成是metaclass创建出来的“实例”。</p>
+<p>metaclass是Python面向对象里最难理解，也是最难使用的魔术代码。正常情况下，你不会碰到需要使用metaclass的情况，所以，以下内容看不懂也没关系，因为基本上你不会用到。</p>
+<p>我们先看一个简单的例子，这个metaclass可以给我们自定义的MyList增加一个<code>add</code>方法：</p>
+<p>定义<code>ListMetaclass</code>，按照默认习惯，metaclass的类名总是以Metaclass结尾，以便清楚地表示这是一个metaclass：</p>
+<pre><code># metaclass是创建类，所以必须从`type`类型派生：
+class ListMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        attrs[&#39;add&#39;] = lambda self, value: self.append(value)
+        return type.__new__(cls, name, bases, attrs)
+
+class MyList(list):
+    __metaclass__ = ListMetaclass # 指示使用ListMetaclass来定制类
+</code></pre><p>当我们写下<code>__metaclass__ = ListMetaclass</code>语句时，魔术就生效了，它指示Python解释器在创建<code>MyList</code>时，要通过<code>ListMetaclass.__new__()</code>来创建，在此，我们可以修改类的定义，比如，加上新的方法，然后，返回修改后的定义。</p>
+<p><code>__new__()</code>方法接收到的参数依次是：</p>
+<ol>
+<li><p>当前准备创建的类的对象；</p>
+</li>
+<li><p>类的名字；</p>
+</li>
+<li><p>类继承的父类集合；</p>
+</li>
+<li><p>类的方法集合。</p>
+</li>
+</ol>
+<p>测试一下<code>MyList</code>是否可以调用<code>add()</code>方法：</p>
+<pre><code>&gt;&gt;&gt; L = MyList()
+&gt;&gt;&gt; L.add(1)
+&gt;&gt;&gt; L
+[1]
+</code></pre><p>而普通的<code>list</code>没有<code>add()</code>方法：</p>
+<pre><code>&gt;&gt;&gt; l = list()
+&gt;&gt;&gt; l.add(1)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: &#39;list&#39; object has no attribute &#39;add&#39;
+</code></pre><p>动态修改有什么意义？直接在<code>MyList</code>定义中写上<code>add()</code>方法不是更简单吗？正常情况下，确实应该直接写，通过metaclass修改纯属变态。</p>
+<p>但是，总会遇到需要通过metaclass修改类定义的。ORM就是一个典型的例子。</p>
+<p>ORM全称“Object Relational Mapping”，即对象-关系映射，就是把关系数据库的一行映射为一个对象，也就是一个类对应一个表，这样，写代码更简单，不用直接操作SQL语句。</p>
+<p>要编写一个ORM框架，所有的类都只能动态定义，因为只有使用者才能根据表的结构定义出对应的类来。</p>
+<p>让我们来尝试编写一个ORM框架。</p>
+<p>编写底层模块的第一步，就是先把调用接口写出来。比如，使用者如果使用这个ORM框架，想定义一个<code>User</code>类来操作对应的数据库表<code>User</code>，我们期待他写出这样的代码：</p>
+<pre><code>class User(Model):
+    # 定义类的属性到列的映射：
+    id = IntegerField(&#39;id&#39;)
+    name = StringField(&#39;username&#39;)
+    email = StringField(&#39;email&#39;)
+    password = StringField(&#39;password&#39;)
+
+# 创建一个实例：
+u = User(id=12345, name=&#39;Michael&#39;, email=&#39;test@orm.org&#39;, password=&#39;my-pwd&#39;)
+# 保存到数据库：
+u.save()
+</code></pre><p>其中，父类<code>Model</code>和属性类型<code>StringField</code>、<code>IntegerField</code>是由ORM框架提供的，剩下的魔术方法比如<code>save()</code>全部由metaclass自动完成。虽然metaclass的编写会比较复杂，但ORM的使用者用起来却异常简单。</p>
+<p>现在，我们就按上面的接口来实现该ORM。</p>
+<p>首先来定义<code>Field</code>类，它负责保存数据库表的字段名和字段类型：</p>
+<pre><code>class Field(object):
+    def __init__(self, name, column_type):
+        self.name = name
+        self.column_type = column_type
+    def __str__(self):
+        return &#39;&lt;%s:%s&gt;&#39; % (self.__class__.__name__, self.name)
+</code></pre><p>在<code>Field</code>的基础上，进一步定义各种类型的<code>Field</code>，比如<code>StringField</code>，<code>IntegerField</code>等等：</p>
+<pre><code>class StringField(Field):
+    def __init__(self, name):
+        super(StringField, self).__init__(name, &#39;varchar(100)&#39;)
+
+class IntegerField(Field):
+    def __init__(self, name):
+        super(IntegerField, self).__init__(name, &#39;bigint&#39;)
+</code></pre><p>下一步，就是编写最复杂的<code>ModelMetaclass</code>了：</p>
+<pre><code>class ModelMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        if name==&#39;Model&#39;:
+            return type.__new__(cls, name, bases, attrs)
+        mappings = dict()
+        for k, v in attrs.iteritems():
+            if isinstance(v, Field):
+                print(&#39;Found mapping: %s==&gt;%s&#39; % (k, v))
+                mappings[k] = v
+        for k in mappings.iterkeys():
+            attrs.pop(k)
+        attrs[&#39;__table__&#39;] = name # 假设表名和类名一致
+        attrs[&#39;__mappings__&#39;] = mappings # 保存属性和列的映射关系
+        return type.__new__(cls, name, bases, attrs)
+</code></pre><p>以及基类<code>Model</code>：</p>
+<pre><code>class Model(dict):
+    __metaclass__ = ModelMetaclass
+
+    def __init__(self, **kw):
+        super(Model, self).__init__(**kw)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(r&quot;&#39;Model&#39; object has no attribute &#39;%s&#39;&quot; % key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def save(self):
+        fields = []
+        params = []
+        args = []
+        for k, v in self.__mappings__.iteritems():
+            fields.append(v.name)
+            params.append(&#39;?&#39;)
+            args.append(getattr(self, k, None))
+        sql = &#39;insert into %s (%s) values (%s)&#39; % (self.__table__, &#39;,&#39;.join(fields), &#39;,&#39;.join(params))
+        print(&#39;SQL: %s&#39; % sql)
+        print(&#39;ARGS: %s&#39; % str(args))
+</code></pre><p>当用户定义一个<code>class User(Model)</code>时，Python解释器首先在当前类<code>User</code>的定义中查找<code>__metaclass__</code>，如果没有找到，就继续在父类<code>Model</code>中查找<code>__metaclass__</code>，找到了，就使用<code>Model</code>中定义的<code>__metaclass__</code>的<code>ModelMetaclass</code>来创建<code>User</code>类，也就是说，metaclass可以隐式地继承到子类，但子类自己却感觉不到。</p>
+<p>在<code>ModelMetaclass</code>中，一共做了几件事情：</p>
+<ol>
+<li><p>排除掉对<code>Model</code>类的修改；</p>
+</li>
+<li><p>在当前类（比如<code>User</code>）中查找定义的类的所有属性，如果找到一个Field属性，就把它保存到一个<code>__mappings__</code>的dict中，同时从类属性中删除该Field属性，否则，容易造成运行时错误；</p>
+</li>
+<li><p>把表名保存到<code>__table__</code>中，这里简化为表名默认为类名。</p>
+</li>
+</ol>
+<p>在<code>Model</code>类中，就可以定义各种操作数据库的方法，比如<code>save()</code>，<code>delete()</code>，<code>find()</code>，<code>update</code>等等。</p>
+<p>我们实现了<code>save()</code>方法，把一个实例保存到数据库中。因为有表名，属性到字段的映射和属性值的集合，就可以构造出<code>INSERT</code>语句。</p>
+<p>编写代码试试：</p>
+<pre><code>u = User(id=12345, name=&#39;Michael&#39;, email=&#39;test@orm.org&#39;, password=&#39;my-pwd&#39;)
+u.save()
+</code></pre><p>输出如下：</p>
+<pre><code>Found model: User
+Found mapping: email ==&gt; &lt;StringField:email&gt;
+Found mapping: password ==&gt; &lt;StringField:password&gt;
+Found mapping: id ==&gt; &lt;IntegerField:uid&gt;
+Found mapping: name ==&gt; &lt;StringField:username&gt;
+SQL: insert into User (password,email,username,uid) values (?,?,?,?)
+ARGS: [&#39;my-pwd&#39;, &#39;test@orm.org&#39;, &#39;Michael&#39;, 12345]
+</code></pre><p>可以看到，<code>save()</code>方法已经打印出了可执行的SQL语句，以及参数列表，只需要真正连接到数据库，执行该SQL语句，就可以完成真正的功能。</p>
+<p>不到100行代码，我们就通过metaclass实现了一个精简的ORM框架，完整的代码从这里下载：</p>
+<p><a href="https://github.com/michaelliao/learn-python/blob/master/metaclass/simple_orm.py">https://github.com/michaelliao/learn-python/blob/master/metaclass/simple_orm.py</a></p>
+<p>最后解释一下类属性和实例属性。直接在class中定义的是类属性：</p>
+<pre><code>class Student(object):
+    name = &#39;Student&#39;
+</code></pre><p>实例属性必须通过实例来绑定，比如<code>self.name = &#39;xxx&#39;</code>。来测试一下：</p>
+<pre><code>&gt;&gt;&gt; # 创建实例s：
+&gt;&gt;&gt; s = Student()
+&gt;&gt;&gt; # 打印name属性，因为实例并没有name属性，所以会继续查找class的name属性：
+&gt;&gt;&gt; print(s.name)
+Student
+&gt;&gt;&gt; # 这和调用Student.name是一样的：
+&gt;&gt;&gt; print(Student.name)
+Student
+&gt;&gt;&gt; # 给实例绑定name属性：
+&gt;&gt;&gt; s.name = &#39;Michael&#39;
+&gt;&gt;&gt; # 由于实例属性优先级比类属性高，因此，它会屏蔽掉类的name属性：
+&gt;&gt;&gt; print(s.name)
+Michael
+&gt;&gt;&gt; # 但是类属性并未消失，用Student.name仍然可以访问：
+&gt;&gt;&gt; print(Student.name)
+Student
+&gt;&gt;&gt; # 如果删除实例的name属性：
+&gt;&gt;&gt; del s.name
+&gt;&gt;&gt; # 再次调用s.name，由于实例的name属性没有找到，类的name属性就显示出来了：
+&gt;&gt;&gt; print(s.name)
+Student
+</code></pre><p>因此，在编写程序的时候，千万不要把实例属性和类属性使用相同的名字。</p>
+<p>在我们编写的ORM中，<code>ModelMetaclass</code>会删除掉User类的所有类属性，目的就是避免造成混淆。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

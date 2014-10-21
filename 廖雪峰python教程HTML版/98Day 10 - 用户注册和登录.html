@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 10 - 用户注册和登录</h4>
+                    <div class="x-wiki-info"><span>305次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>用户管理是绝大部分Web网站都需要解决的问题。用户管理涉及到用户注册和登录。</p>
+<p>用户注册相对简单，我们可以先通过API把用户注册这个功能实现了：</p>
+<pre><code>_RE_MD5 = re.compile(r&#39;^[0-9a-f]{32}$&#39;)
+
+@api
+@post(&#39;/api/users&#39;)
+def register_user():
+    i = ctx.request.input(name=&#39;&#39;, email=&#39;&#39;, password=&#39;&#39;)
+    name = i.name.strip()
+    email = i.email.strip().lower()
+    password = i.password
+    if not name:
+        raise APIValueError(&#39;name&#39;)
+    if not email or not _RE_EMAIL.match(email):
+        raise APIValueError(&#39;email&#39;)
+    if not password or not _RE_MD5.match(password):
+        raise APIValueError(&#39;password&#39;)
+    user = User.find_first(&#39;where email=?&#39;, email)
+    if user:
+        raise APIError(&#39;register:failed&#39;, &#39;email&#39;, &#39;Email is already in use.&#39;)
+    user = User(name=name, email=email, password=password, image=&#39;http://www.gravatar.com/avatar/%s?d=mm&amp;s=120&#39; % hashlib.md5(email).hexdigest())
+    user.insert()
+    return user
+</code></pre><p>注意用户口令是客户端传递的经过MD5计算后的32位Hash字符串，所以服务器端并不知道用户的原始口令。</p>
+<p>接下来可以创建一个注册页面，让用户填写注册表单，然后，提交数据到注册用户的API：</p>
+<pre><code>{% extends &#39;__base__.html&#39; %}
+
+{% block title %}注册{% endblock %}
+
+{% block beforehead %}
+
+&lt;script&gt;
+function check_form() {
+    $(&#39;#password&#39;).val(CryptoJS.MD5($(&#39;#password1&#39;).val()).toString());
+    return true;
+}
+&lt;/script&gt;
+
+{% endblock %}
+
+{% block content %}
+
+&lt;div class=&quot;uk-width-2-3&quot;&gt;
+    &lt;h1&gt;欢迎注册！&lt;/h1&gt;
+    &lt;form id=&quot;form-register&quot; class=&quot;uk-form uk-form-stacked&quot; onsubmit=&quot;return check_form()&quot;&gt;
+        &lt;div class=&quot;uk-alert uk-alert-danger uk-hidden&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;uk-form-row&quot;&gt;
+            &lt;label class=&quot;uk-form-label&quot;&gt;名字:&lt;/label&gt;
+            &lt;div class=&quot;uk-form-controls&quot;&gt;
+                &lt;input name=&quot;name&quot; type=&quot;text&quot; class=&quot;uk-width-1-1&quot;&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;uk-form-row&quot;&gt;
+            &lt;label class=&quot;uk-form-label&quot;&gt;电子邮件:&lt;/label&gt;
+            &lt;div class=&quot;uk-form-controls&quot;&gt;
+                &lt;input name=&quot;email&quot; type=&quot;text&quot; class=&quot;uk-width-1-1&quot;&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;uk-form-row&quot;&gt;
+            &lt;label class=&quot;uk-form-label&quot;&gt;输入口令:&lt;/label&gt;
+            &lt;div class=&quot;uk-form-controls&quot;&gt;
+                &lt;input id=&quot;password1&quot; type=&quot;password&quot; class=&quot;uk-width-1-1&quot;&gt;
+                &lt;input id=&quot;password&quot; name=&quot;password&quot; type=&quot;hidden&quot;&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;uk-form-row&quot;&gt;
+            &lt;label class=&quot;uk-form-label&quot;&gt;重复口令:&lt;/label&gt;
+            &lt;div class=&quot;uk-form-controls&quot;&gt;
+                &lt;input name=&quot;password2&quot; type=&quot;password&quot; maxlength=&quot;50&quot; placeholder=&quot;重复口令&quot; class=&quot;uk-width-1-1&quot;&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;uk-form-row&quot;&gt;
+            &lt;button type=&quot;submit&quot; class=&quot;uk-button uk-button-primary&quot;&gt;&lt;i class=&quot;uk-icon-user&quot;&gt;&lt;/i&gt; 注册&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/form&gt;
+&lt;/div&gt;
+
+{% endblock %}
+</code></pre><p>这样我们就把用户注册的功能完成了：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001402407467106118e43dca92a4ba58de97789244b0c77000/" alt="awesomepy-register"></p>
+<p>用户登录比用户注册复杂。由于HTTP协议是一种无状态协议，而服务器要跟踪用户状态，就只能通过cookie实现。大多数Web框架提供了Session功能来封装保存用户状态的cookie。</p>
+<p>Session的优点是简单易用，可以直接从Session中取出用户登录信息。</p>
+<p>Session的缺点是服务器需要在内存中维护一个映射表来存储用户登录信息，如果有两台以上服务器，就需要对Session做集群，因此，使用Session的Web App很难扩展。</p>
+<p>我们采用直接读取cookie的方式来验证用户登录，每次用户访问任意URL，都会对cookie进行验证，这种方式的好处是保证服务器处理任意的URL都是无状态的，可以扩展到多台服务器。</p>
+<p>由于登录成功后是由服务器生成一个cookie发送给浏览器，所以，要保证这个cookie不会被客户端伪造出来。</p>
+<p>实现防伪造cookie的关键是通过一个单向算法（例如MD5），举例如下：</p>
+<p>当用户输入了正确的口令登录成功后，服务器可以从数据库取到用户的id，并按照如下方式计算出一个字符串：</p>
+<pre><code>&quot;用户id&quot; + &quot;过期时间&quot; + MD5(&quot;用户id&quot; + &quot;用户口令&quot; + &quot;过期时间&quot; + &quot;SecretKey&quot;)
+</code></pre><p>当浏览器发送cookie到服务器端后，服务器可以拿到的信息包括：</p>
+<ul>
+<li><p>用户id</p>
+</li>
+<li><p>过期时间</p>
+</li>
+<li><p>MD5值</p>
+</li>
+</ul>
+<p>如果未到过期时间，服务器就根据用户id查找用户口令，并计算：</p>
+<pre><code>MD5(&quot;用户id&quot; + &quot;用户口令&quot; + &quot;过期时间&quot; + &quot;SecretKey&quot;)
+</code></pre><p>并与浏览器cookie中的MD5进行比较，如果相等，则说明用户已登录，否则，cookie就是伪造的。</p>
+<p>这个算法的关键在于MD5是一种单向算法，即可以通过原始字符串计算出MD5，但无法通过MD5反推出原始字符串。</p>
+<p>所以登录API可以实现如下：</p>
+<pre><code>@api
+@post(&#39;/api/authenticate&#39;)
+def authenticate():
+    i = ctx.request.input()
+    email = i.email.strip().lower()
+    password = i.password
+    user = User.find_first(&#39;where email=?&#39;, email)
+    if user is None:
+        raise APIError(&#39;auth:failed&#39;, &#39;email&#39;, &#39;Invalid email.&#39;)
+    elif user.password != password:
+        raise APIError(&#39;auth:failed&#39;, &#39;password&#39;, &#39;Invalid password.&#39;)
+    max_age = 604800
+    cookie = make_signed_cookie(user.id, user.password, max_age)
+    ctx.response.set_cookie(_COOKIE_NAME, cookie, max_age=max_age)
+    user.password = &#39;******&#39;
+    return user
+
+# 计算加密cookie:
+def make_signed_cookie(id, password, max_age):
+    expires = str(int(time.time() + max_age))
+    L = [id, expires, hashlib.md5(&#39;%s-%s-%s-%s&#39; % (id, password, expires, _COOKIE_KEY)).hexdigest()]
+    return &#39;-&#39;.join(L)
+</code></pre><p>对于每个URL处理函数，如果我们都去写解析cookie的代码，那会导致代码重复很多次。</p>
+<p>利用拦截器在处理URL之前，把cookie解析出来，并将登录用户绑定到<code>ctx.request</code>对象上，这样，后续的URL处理函数就可以直接拿到登录用户：</p>
+<pre><code>@interceptor(&#39;/&#39;)
+def user_interceptor(next):
+    user = None
+    cookie = ctx.request.cookies.get(_COOKIE_NAME)
+    if cookie:
+        user = parse_signed_cookie(cookie)
+    ctx.request.user = user
+    return next()
+
+# 解密cookie:
+def parse_signed_cookie(cookie_str):
+    try:
+        L = cookie_str.split(&#39;-&#39;)
+        if len(L) != 3:
+            return None
+        id, expires, md5 = L
+        if int(expires) &lt; time.time():
+            return None
+        user = User.get(id)
+        if user is None:
+            return None
+        if md5 != hashlib.md5(&#39;%s-%s-%s-%s&#39; % (id, user.password, expires, _COOKIE_KEY)).hexdigest():
+            return None
+        return user
+    except:
+        return None
+</code></pre><p>这样，我们就完成了用户注册和登录的功能。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

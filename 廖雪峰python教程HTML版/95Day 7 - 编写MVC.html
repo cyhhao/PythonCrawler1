@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 7 - 编写MVC</h4>
+                    <div class="x-wiki-info"><span>310次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>现在，ORM框架、Web框架和配置都已就绪，我们可以开始编写一个最简单的MVC，把它们全部启动起来。</p>
+<p>通过Web框架的@decorator和ORM框架的Model支持，可以很容易地编写一个处理首页URL的函数：</p>
+<pre><code># urls.py
+from transwarp.web import get, view
+from models import User, Blog, Comment
+
+@view(&#39;test_users.html&#39;)
+@get(&#39;/&#39;)
+def test_users():
+    users = User.find_all()
+    return dict(users=users)
+</code></pre><p><code>@view</code>指定的模板文件是<code>test_users.html</code>，所以我们在模板的根目录<code>templates</code>下创建<code>test_users.html</code>：</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;title&gt;Test users - Awesome Python Webapp&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;All users&lt;/h1&gt;
+    {% for u in users %}
+    &lt;p&gt;{{ u.name }} / {{ u.email }}&lt;/p&gt;
+    {% endfor %}
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>接下来，我们创建一个Web App的启动文件<code>wsgiapp.py</code>，负责初始化数据库、初始化Web框架，然后加载<code>urls.py</code>，最后启动Web服务：</p>
+<pre><code># wsgiapp.py
+import logging; logging.basicConfig(level=logging.INFO)
+import os
+
+from transwarp import db
+from transwarp.web import WSGIApplication, Jinja2TemplateEngine
+
+from config import configs
+
+# 初始化数据库:
+db.create_engine(**configs.db)
+
+# 创建一个WSGIApplication:
+wsgi = WSGIApplication(os.path.dirname(os.path.abspath(__file__)))
+# 初始化jinja2模板引擎:
+template_engine = Jinja2TemplateEngine(os.path.join(os.path.dirname(os.path.abspath(__file__)), &#39;templates&#39;))
+wsgi.template_engine = template_engine
+
+# 加载带有@get/@post的URL处理函数:
+import urls
+wsgi.add_module(urls)
+
+# 在9000端口上启动本地测试服务器:
+if __name__ == &#39;__main__&#39;:
+    wsgi.run(9000)
+</code></pre><p>如果一切顺利，可以用命令行启动Web服务器：</p>
+<pre><code>$ python wsgiapp.py
+</code></pre><p>然后，在浏览器中访问<code>http://localhost:9000/</code>。</p>
+<p>如果数据库的<code>users</code>表什么内容也没有，你就无法在浏览器中看到循环输出的内容。可以自己在MySQL的命令行里给<code>users</code>表添加几条记录，然后再访问：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001402361927026669df00c592c42b588bd5bfe834f25c9000" alt="awesomepy-all-users"></p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

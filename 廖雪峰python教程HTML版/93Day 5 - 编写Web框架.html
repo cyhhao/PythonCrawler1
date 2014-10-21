@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 5 - 编写Web框架</h4>
+                    <div class="x-wiki-info"><span>542次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>在正式开始Web开发前，我们需要编写一个Web框架。</p>
+<p>为什么不选择一个现成的Web框架而是自己从头开发呢？我们来考察一下现有的流行的Web框架：</p>
+<p><strong>Django</strong>：一站式开发框架，但不利于定制化；</p>
+<p><strong>web.py</strong>：使用类而不是更简单的函数来处理URL，并且URL映射是单独配置的；</p>
+<p><strong>Flask</strong>：使用@decorator的URL路由不错，但框架对应用程序的代码入侵太强；</p>
+<p><strong>bottle</strong>：缺少根据URL模式进行拦截的功能，不利于做权限检查。</p>
+<p>所以，我们综合几种框架的优点，设计一个简单、灵活、入侵性极小的Web框架。</p>
+<h3 id="-web-">设计Web框架</h3>
+<p>一个简单的URL框架应该允许以@decorator方式直接把URL映射到函数上：</p>
+<pre><code># 首页:
+@get(&#39;/&#39;)
+def index():
+    return &#39;&lt;h1&gt;Index page&lt;/h1&gt;&#39;
+
+# 带参数的URL:
+@get(&#39;/user/:id&#39;)
+def show_user(id):
+    user = User.get(id)
+    return &#39;hello, %s&#39; % user.name
+</code></pre><p>有没有@decorator不改变函数行为，也就是说，Web框架的API入侵性很小，你可以直接测试函数<code>show_user(id)</code>而不需要启动Web服务器。</p>
+<p>函数可以返回<code>str</code>、<code>unicode</code>以及<code>iterator</code>，这些数据可以直接作为字符串返回给浏览器。</p>
+<p>其次，Web框架要支持URL拦截器，这样，我们就可以根据URL做权限检查：</p>
+<pre><code>@interceptor(&#39;/manage/&#39;)
+def check_manage_url(next):
+    if current_user.isAdmin():
+        return next()
+    else:
+        raise seeother(&#39;/signin&#39;)
+</code></pre><p>拦截器接受一个<code>next</code>函数，这样，一个拦截器可以决定调用<code>next()</code>继续处理请求还是直接返回。</p>
+<p>为了支持MVC，Web框架需要支持模板，但是我们不限定使用哪一种模板，可以选择jinja2，也可以选择mako、Cheetah等等。</p>
+<p>要统一模板的接口，函数可以返回<code>dict</code>并配合@view来渲染模板：</p>
+<pre><code>@view(&#39;index.html&#39;)
+@get(&#39;/&#39;)
+def index():
+    return dict(blogs=get_recent_blogs(), user=get_current_user())
+</code></pre><p>如果需要从form表单或者URL的querystring获取用户输入的数据，就需要访问<code>request</code>对象，如果要设置特定的Content-Type、设置Cookie等，就需要访问<code>response</code>对象。<code>request</code>和<code>response</code>对象应该从一个唯一的ThreadLocal中获取：</p>
+<pre><code>@get(&#39;/test&#39;)
+def test():
+    input_data = ctx.request.input()
+    ctx.response.content_type = &#39;text/plain&#39;
+    ctx.response.set_cookie(&#39;name&#39;, &#39;value&#39;, expires=3600)
+    return &#39;result&#39;
+</code></pre><p>最后，如果需要重定向、或者返回一个HTTP错误码，最好的方法是直接抛出异常，例如，重定向到登陆页：</p>
+<pre><code>raise seeother(&#39;/signin&#39;)
+</code></pre><p>返回404错误：</p>
+<pre><code>raise notfound()
+</code></pre><p>基于以上接口，我们就可以实现Web框架了。</p>
+<h3 id="-web-">实现Web框架</h3>
+<p>最基本的几个对象如下：</p>
+<pre><code># transwarp/web.py
+
+# 全局ThreadLocal对象：
+ctx = threading.local()
+
+# HTTP错误类:
+class HttpError(Exception):
+    pass
+
+# request对象:
+class Request(object):
+    # 根据key返回value:
+    def get(self, key, default=None):
+        pass
+
+    # 返回key-value的dict:
+    def input(self):
+        pass
+
+    # 返回URL的path:
+    @property
+    def path_info(self):
+        pass
+
+    # 返回HTTP Headers:
+    @property
+    def headers(self):
+        pass
+
+    # 根据key返回Cookie value:
+    def cookie(self, name, default=None):
+        pass
+
+# response对象:
+class Response(object):
+    # 设置header:
+    def set_header(self, key, value):
+        pass
+
+    # 设置Cookie:
+    def set_cookie(self, name, value, max_age=None, expires=None, path=&#39;/&#39;):
+        pass
+
+    # 设置status:
+    @property
+    def status(self):
+        pass
+    @status.setter
+    def status(self, value):
+        pass
+
+# 定义GET:
+def get(path):
+    pass
+
+# 定义POST:
+def post(path):
+    pass
+
+# 定义模板:
+def view(path):
+    pass
+
+# 定义拦截器:
+def interceptor(pattern):
+    pass
+
+# 定义模板引擎:
+class TemplateEngine(object):
+    def __call__(self, path, model):
+        pass
+
+# 缺省使用jinja2:
+class Jinja2TemplateEngine(TemplateEngine):
+    def __init__(self, templ_dir, **kw):
+        from jinja2 import Environment, FileSystemLoader
+        self._env = Environment(loader=FileSystemLoader(templ_dir), **kw)
+
+    def __call__(self, path, model):
+        return self._env.get_template(path).render(**model).encode(&#39;utf-8&#39;)
+</code></pre><p>把上面的定义填充完毕，我们就只剩下一件事情：定义全局<code>WSGIApplication</code>的类，实现WSGI接口，然后，通过配置启动，就完成了整个Web框架的工作。</p>
+<p>设计<code>WSGIApplication</code>要充分考虑开发模式（Development Mode）和产品模式（Production Mode）的区分。在产品模式下，<code>WSGIApplication</code>需要直接提供WSGI接口给服务器，让服务器调用该接口，而在开发模式下，我们更希望能通过<code>app.run()</code>直接启动服务器进行开发调试：</p>
+<pre><code>wsgi = WSGIApplication()
+if __name__ == &#39;__main__&#39;:
+    wsgi.run()
+else:
+    application = wsgi.get_wsgi_application()
+</code></pre><p>因此，<code>WSGIApplication</code>定义如下：</p>
+<pre><code>class WSGIApplication(object):
+    def __init__(self, document_root=None, **kw):
+        pass
+
+    # 添加一个URL定义:
+    def add_url(self, func):
+        pass
+
+    # 添加一个Interceptor定义:
+    def add_interceptor(self, func):
+        pass
+
+    # 设置TemplateEngine:
+    @property
+    def template_engine(self):
+        pass
+
+    @template_engine.setter
+    def template_engine(self, engine):
+        pass
+
+    # 返回WSGI处理函数:
+    def get_wsgi_application(self):
+        def wsgi(env, start_response):
+            pass
+        return wsgi
+
+    # 开发模式下直接启动服务器:
+    def run(self, port=9000, host=&#39;127.0.0.1&#39;):
+        from wsgiref.simple_server import make_server
+        server = make_server(host, port, self.get_wsgi_application())
+        server.serve_forever()
+</code></pre><p>把<code>WSGIApplication</code>类填充完毕，我们就得到了一个完整的Web框架。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

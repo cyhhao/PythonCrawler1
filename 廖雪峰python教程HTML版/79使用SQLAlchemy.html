@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>使用SQLAlchemy</h4>
+                    <div class="x-wiki-info"><span>502次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>数据库表是一个二维表，包含多行多列。把一个表的内容用Python的数据结构表示出来的话，可以用一个list表示多行，list的每一个元素是tuple，表示一行记录，比如，包含<code>id</code>和<code>name</code>的<code>user</code>表：</p>
+<pre><code>[
+    (&#39;1&#39;, &#39;Michael&#39;),
+    (&#39;2&#39;, &#39;Bob&#39;),
+    (&#39;3&#39;, &#39;Adam&#39;)
+]
+</code></pre><p>Python的DB-API返回的数据结构就是像上面这样表示的。</p>
+<p>但是用tuple表示一行很难看出表的结构。如果把一个tuple用class实例来表示，就可以更容易地看出表的结构来：</p>
+<pre><code>class User(object):
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+
+[
+    User(&#39;1&#39;, &#39;Michael&#39;),
+    User(&#39;2&#39;, &#39;Bob&#39;),
+    User(&#39;3&#39;, &#39;Adam&#39;)
+]
+</code></pre><p>这就是传说中的ORM技术：Object-Relational Mapping，把关系数据库的表结构映射到对象上。是不是很简单？</p>
+<p>但是由谁来做这个转换呢？所以ORM框架应运而生。</p>
+<p>在Python中，最有名的ORM框架是SQLAlchemy。我们来看看SQLAlchemy的用法。</p>
+<p>首先通过easy_install或者pip安装SQLAlchemy：</p>
+<pre><code>$ easy_install sqlalchemy
+</code></pre><p>然后，利用上次我们在MySQL的test数据库中创建的<code>user</code>表，用SQLAlchemy来试试：</p>
+<p>第一步，导入SQLAlchemy，并初始化DBSession：</p>
+<pre><code># 导入:
+from sqlalchemy import Column, String, create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+# 创建对象的基类:
+Base = declarative_base()
+
+# 定义User对象:
+class User(Base):
+    # 表的名字:
+    __tablename__ = &#39;user&#39;
+
+    # 表的结构:
+    id = Column(String(20), primary_key=True)
+    name = Column(String(20))
+
+# 初始化数据库连接:
+engine = create_engine(&#39;mysql+mysqlconnector://root:password@localhost:3306/test&#39;)
+# 创建DBSession类型:
+DBSession = sessionmaker(bind=engine)
+</code></pre><p>以上代码完成SQLAlchemy的初始化和具体每个表的class定义。如果有多个表，就继续定义其他class，例如School：</p>
+<pre><code>class School(Base):
+    __tablename__ = &#39;school&#39;
+    id = ...
+    name = ...
+</code></pre><p><code>create_engine()</code>用来初始化数据库连接。SQLAlchemy用一个字符串表示连接信息：</p>
+<pre><code>&#39;数据库类型+数据库驱动名称://用户名:口令@机器地址:端口号/数据库名&#39;
+</code></pre><p>你只需要根据需要替换掉用户名、口令等信息即可。</p>
+<p>下面，我们看看如何向数据库表中添加一行记录。</p>
+<p>由于有了ORM，我们向数据库表中添加一行记录，可以视为添加一个<code>User</code>对象：</p>
+<pre><code># 创建session对象:
+session = DBSession()
+# 创建新User对象:
+new_user = User(id=&#39;5&#39;, name=&#39;Bob&#39;)
+# 添加到session:
+session.add(new_user)
+# 提交即保存到数据库:
+session.commit()
+# 关闭session:
+session.close()
+</code></pre><p>可见，关键是获取session，然后把对象添加到session，最后提交并关闭。Session对象可视为当前数据库连接。</p>
+<p>如何从数据库表中查询数据呢？有了ORM，查询出来的可以不再是tuple，而是<code>User</code>对象。SQLAlchemy提供的查询接口如下：</p>
+<pre><code># 创建Session:
+session = DBSession()
+# 创建Query查询，filter是where条件，最后调用one()返回唯一行，如果调用all()则返回所有行:
+user = session.query(User).filter(User.id==&#39;5&#39;).one()
+# 打印类型和对象的name属性:
+print &#39;type:&#39;, type(user)
+print &#39;name:&#39;, user.name
+# 关闭Session:
+session.close()
+</code></pre><p>运行结果如下：</p>
+<pre><code>type: &lt;class &#39;__main__.User&#39;&gt;
+name: Bob
+</code></pre><p>可见，ORM就是把数据库表的行与相应的对象建立关联，互相转换。</p>
+<p>由于关系数据库的多个表还可以用外键实现一对多、多对多等关联，相应地，ORM框架也可以提供两个对象之间的一对多、多对多等功能。</p>
+<p>例如，如果一个User拥有多个Book，就可以定义一对多关系如下：</p>
+<pre><code>class User(Base):
+    __tablename__ = &#39;user&#39;
+
+    id = Column(String(20), primary_key=True)
+    name = Column(String(20))
+    # 一对多:
+    books = relationship(&#39;Book&#39;)
+
+class Book(Base):
+    __tablename__ = &#39;book&#39;
+
+    id = Column(String(20), primary_key=True)
+    name = Column(String(20))
+    # “多”的一方的book表是通过外键关联到user表的:
+    user_id = Column(String(20), ForeignKey(&#39;user.id&#39;))
+</code></pre><p>当我们查询一个User对象时，该对象的books属性将返回一个包含若干个Book对象的list。</p>
+<h3 id="-">小结</h3>
+<p>ORM框架的作用就是把数据库表的一行记录与一个对象互相做自动转换。</p>
+<p>正确使用ORM的前提是了解关系数据库的原理。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

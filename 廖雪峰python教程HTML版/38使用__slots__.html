@@ -1,0 +1,73 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>使用__slots__</h4>
+                    <div class="x-wiki-info"><span>1418次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>正常情况下，当我们定义了一个class，创建了一个class的实例后，我们可以给该实例绑定任何属性和方法，这就是动态语言的灵活性。先定义class：</p>
+<pre><code>&gt;&gt;&gt; class Student(object):
+...     pass
+...
+</code></pre><p>然后，尝试给实例绑定一个属性：</p>
+<pre><code>&gt;&gt;&gt; s = Student()
+&gt;&gt;&gt; s.name = &#39;Michael&#39; # 动态给实例绑定一个属性
+&gt;&gt;&gt; print s.name
+Michael
+</code></pre><p>还可以尝试给实例绑定一个方法：</p>
+<pre><code>&gt;&gt;&gt; def set_age(self, age): # 定义一个函数作为实例方法
+...     self.age = age
+...
+&gt;&gt;&gt; from types import MethodType
+&gt;&gt;&gt; s.set_age = MethodType(set_age, s, Student) # 给实例绑定一个方法
+&gt;&gt;&gt; s.set_age(25) # 调用实例方法
+&gt;&gt;&gt; s.age # 测试结果
+25
+</code></pre><p>但是，给一个实例绑定的方法，对另一个实例是不起作用的：</p>
+<pre><code>&gt;&gt;&gt; s2 = Student() # 创建新的实例
+&gt;&gt;&gt; s2.set_age(25) # 尝试调用方法
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: &#39;Student&#39; object has no attribute &#39;set_age&#39;
+</code></pre><p>为了给所有实例都绑定方法，可以给class绑定方法：</p>
+<pre><code>&gt;&gt;&gt; def set_score(self, score):
+...     self.score = score
+...
+&gt;&gt;&gt; Student.set_score = MethodType(set_score, None, Student)
+</code></pre><p>给class绑定方法后，所有实例均可调用：</p>
+<pre><code>&gt;&gt;&gt; s.set_score(100)
+&gt;&gt;&gt; s.score
+100
+&gt;&gt;&gt; s2.set_score(99)
+&gt;&gt;&gt; s2.score
+99
+</code></pre><p>通常情况下，上面的<code>set_score</code>方法可以直接定义在class中，但动态绑定允许我们在程序运行的过程中动态给class加上功能，这在静态语言中很难实现。</p>
+<h3 id="-_-_slots-_-_">使用__slots__</h3>
+<p>但是，如果我们想要限制class的属性怎么办？比如，只允许对Student实例添加<code>name</code>和<code>age</code>属性。</p>
+<p>为了达到限制的目的，Python允许在定义class的时候，定义一个特殊的<code>__slots__</code>变量，来限制该class能添加的属性：</p>
+<pre><code>&gt;&gt;&gt; class Student(object):
+...     __slots__ = (&#39;name&#39;, &#39;age&#39;) # 用tuple定义允许绑定的属性名称
+...
+</code></pre><p>然后，我们试试：</p>
+<pre><code>&gt;&gt;&gt; s = Student() # 创建新的实例
+&gt;&gt;&gt; s.name = &#39;Michael&#39; # 绑定属性&#39;name&#39;
+&gt;&gt;&gt; s.age = 25 # 绑定属性&#39;age&#39;
+&gt;&gt;&gt; s.score = 99 # 绑定属性&#39;score&#39;
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: &#39;Student&#39; object has no attribute &#39;score&#39;
+</code></pre><p>由于<code>&#39;score&#39;</code>没有被放到<code>__slots__</code>中，所以不能绑定<code>score</code>属性，试图绑定<code>score</code>将得到AttributeError的错误。</p>
+<p>使用<code>__slots__</code>要注意，<code>__slots__</code>定义的属性仅对当前类起作用，对继承的子类是不起作用的：</p>
+<pre><code>&gt;&gt;&gt; class GraduateStudent(Student):
+...     pass
+...
+&gt;&gt;&gt; g = GraduateStudent()
+&gt;&gt;&gt; g.score = 9999
+</code></pre><p>除非在子类中也定义<code>__slots__</code>，这样，子类允许定义的属性就是自身的<code>__slots__</code>加上父类的<code>__slots__</code>。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

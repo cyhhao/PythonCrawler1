@@ -1,0 +1,45 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 1 - 搭建开发环境</h4>
+                    <div class="x-wiki-info"><span>3068次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><h3 id="-">搭建开发环境</h3>
+<p>首先，确认系统安装的Python版本是2.7.x：</p>
+<pre><code>$ python --version
+Python 2.7.5
+</code></pre><p>然后，安装开发Web App需要的第三方库：</p>
+<p>前端模板引擎jinja2：</p>
+<pre><code>$ easy_install jinja2
+</code></pre><p>MySQL 5.x数据库，从<a href="http://dev.mysql.com/downloads/mysql/5.6.html">官方网站</a>下载并安装，安装完毕后，请务必牢记root口令。为避免遗忘口令，建议直接把root口令设置为<code>password</code>；</p>
+<p>MySQL的Python驱动程序mysql-connector-python：</p>
+<pre><code>$ easy_install mysql-connector-python
+</code></pre><h3 id="-">项目结构</h3>
+<p>选择一个工作目录，然后，我们建立如下的目录结构：</p>
+<pre><code>awesome-python-webapp/   &lt;-- 根目录
+|
++- backup/               &lt;-- 备份目录
+|
++- conf/                 &lt;-- 配置文件
+|
++- dist/                 &lt;-- 打包目录
+|
++- www/                  &lt;-- Web目录，存放.py文件
+|  |
+|  +- static/            &lt;-- 存放静态文件
+|  |
+|  +- templates/         &lt;-- 存放模板文件
+|
++- LICENSE               &lt;-- 代码LICENSE
+</code></pre><p>创建好项目的目录结构后，建议同时建立Git仓库并同步至GitHub，保证代码修改的安全。</p>
+<p>要了解Git和GitHub的用法，请移步<a href="http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000">Git教程</a>。</p>
+<h3 id="-">开发工具</h3>
+<p>自备，推荐用Sublime Text。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

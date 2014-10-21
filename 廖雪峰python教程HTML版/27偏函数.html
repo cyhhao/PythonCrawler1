@@ -1,0 +1,46 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>偏函数</h4>
+                    <div class="x-wiki-info"><span>1520次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>Python的<code>functools</code>模块提供了很多有用的功能，其中一个就是偏函数（Partial function）。要注意，这里的偏函数和数学意义上的偏函数不一样。</p>
+<p>在介绍函数参数的时候，我们讲到，通过设定参数的默认值，可以降低函数调用的难度。而偏函数也可以做到这一点。举例如下：</p>
+<p><code>int()</code>函数可以把字符串转换为整数，当仅传入字符串时，<code>int()</code>函数默认按十进制转换：</p>
+<pre><code>&gt;&gt;&gt; int(&#39;12345&#39;)
+12345
+</code></pre><p>但<code>int()</code>函数还提供额外的<code>base</code>参数，默认值为<code>10</code>。如果传入<code>base</code>参数，就可以做N进制的转换：</p>
+<pre><code>&gt;&gt;&gt; int(&#39;12345&#39;, base=8)
+5349
+&gt;&gt;&gt; int(&#39;12345&#39;, 16)
+74565
+</code></pre><p>假设要转换大量的二进制字符串，每次都传入<code>int(x, base=2)</code>非常麻烦，于是，我们想到，可以定义一个<code>int2()</code>的函数，默认把<code>base=2</code>传进去：</p>
+<pre><code>def int2(x, base=2):
+    return int(x, base)
+</code></pre><p>这样，我们转换二进制就非常方便了：</p>
+<pre><code>&gt;&gt;&gt; int2(&#39;1000000&#39;)
+64
+&gt;&gt;&gt; int2(&#39;1010101&#39;)
+85
+</code></pre><p><code>functools.partial</code>就是帮助我们创建一个偏函数的，不需要我们自己定义<code>int2()</code>，可以直接使用下面的代码创建一个新的函数<code>int2</code>：</p>
+<pre><code>&gt;&gt;&gt; import functools
+&gt;&gt;&gt; int2 = functools.partial(int, base=2)
+&gt;&gt;&gt; int2(&#39;1000000&#39;)
+64
+&gt;&gt;&gt; int2(&#39;1010101&#39;)
+85
+</code></pre><p>所以，简单总结<code>functools.partial</code>的作用就是，把一个函数的某些参数（不管有没有默认值）给固定住（也就是设置默认值），返回一个新的函数，调用这个新函数会更简单。</p>
+<p>注意到上面的新的<code>int2</code>函数，仅仅是把<code>base</code>参数重新设定默认值为<code>2</code>，但也可以在函数调用时传入其他值：</p>
+<pre><code>&gt;&gt;&gt; int2(&#39;1000000&#39;, base=10)
+1000000
+</code></pre><p>最后，创建偏函数时，要从右到左固定参数，就是说，对于函数<code>f(a1, a2, a3)</code>，可以固定<code>a3</code>，也可以固定<code>a3</code>和<code>a2</code>，也可以固定<code>a3</code>，<code>a2</code>和<code>a1</code>，但不要跳着固定，比如只固定<code>a1</code>和<code>a3</code>，把<code>a2</code>漏下了。如果这样做，调用新的函数会更复杂，可以自己试试。</p>
+<h3 id="-">小结</h3>
+<p>当函数的参数个数太多，需要简化时，使用<code>functools.partial</code>可以创建一个新的函数，这个新函数可以固定住原函数的部分参数，从而在调用时更简单。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

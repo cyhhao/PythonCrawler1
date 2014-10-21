@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>PIL</h4>
+                    <div class="x-wiki-info"><span>239次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>PIL：Python Imaging Library，已经是Python平台事实上的图像处理标准库了。PIL功能非常强大，但API却非常简单易用。</p>
+<h3 id="-pil">安装PIL</h3>
+<p>在Debian/Ubuntu Linux下直接通过apt安装：</p>
+<pre><code>$ sudo apt-get install python-imaging
+</code></pre><p>Mac和其他版本的Linux可以直接使用easy_install或pip安装，安装前需要把编译环境装好：</p>
+<pre><code>$ sudo easy_install PIL
+</code></pre><p>如果安装失败，根据提示先把缺失的包（比如openjpeg）装上。</p>
+<p>Windows平台就去<a href="http://pythonware.com/products/pil/">PIL官方网站</a>下载exe安装包。</p>
+<h3 id="-">操作图像</h3>
+<p>来看看最常见的图像缩放操作，只需三四行代码：</p>
+<pre><code>import Image
+
+# 打开一个jpg图像文件，注意路径要改成你自己的:
+im = Image.open(&#39;/Users/michael/test.jpg&#39;)
+# 获得图像尺寸:
+w, h = im.size
+# 缩放到50%:
+im.thumbnail((w//2, h//2))
+# 把缩放后的图像用jpeg格式保存:
+im.save(&#39;/Users/michael/thumbnail.jpg&#39;, &#39;jpeg&#39;)
+</code></pre><p>其他功能如切片、旋转、滤镜、输出文字、调色板等一应俱全。</p>
+<p>比如，模糊效果也只需几行代码：</p>
+<pre><code>import Image, ImageFilter
+
+im = Image.open(&#39;/Users/michael/test.jpg&#39;)
+im2 = im.filter(ImageFilter.BLUR)
+im2.save(&#39;/Users/michael/blur.jpg&#39;, &#39;jpeg&#39;)
+</code></pre><p>效果如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001407671964310a6b503be6fcb4648928e2e4c522d04c7000" alt="PIL-blur"></p>
+<p>PIL的<code>ImageDraw</code>提供了一系列绘图方法，让我们可以直接绘图。比如要生成字母验证码图片：</p>
+<pre><code>import Image, ImageDraw, ImageFont, ImageFilter
+import random
+
+# 随机字母:
+def rndChar():
+    return chr(random.randint(65, 90))
+
+# 随机颜色1:
+def rndColor():
+    return (random.randint(64, 255), random.randint(64, 255), random.randint(64, 255))
+
+# 随机颜色2:
+def rndColor2():
+    return (random.randint(32, 127), random.randint(32, 127), random.randint(32, 127))
+
+# 240 x 60:
+width = 60 * 4
+height = 60
+image = Image.new(&#39;RGB&#39;, (width, height), (255, 255, 255))
+# 创建Font对象:
+font = ImageFont.truetype(&#39;Arial.ttf&#39;, 36)
+# 创建Draw对象:
+draw = ImageDraw.Draw(image)
+# 填充每个像素:
+for x in range(width):
+    for y in range(height):
+        draw.point((x, y), fill=rndColor())
+# 输出文字:
+for t in range(4):
+    draw.text((60 * t + 10, 10), rndChar(), font=font, fill=rndColor2())
+# 模糊:
+image = image.filter(ImageFilter.BLUR)
+image.save(&#39;code.jpg&#39;, &#39;jpeg&#39;);
+</code></pre><p>我们用随机颜色填充背景，再画上文字，最后对图像进行模糊，得到验证码图片如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0014076720724832de067ce843d41c58f2af067d1e0720f000" alt="验证码"></p>
+<p>如果运行的时候报错：</p>
+<pre><code>IOError: cannot open resource
+</code></pre><p>这是因为PIL无法定位到字体文件的位置，可以根据操作系统提供绝对路径，比如：</p>
+<pre><code>&#39;/Library/Fonts/Arial.ttf&#39;
+</code></pre><p>要详细了解PIL的强大功能，请请参考PIL官方文档：</p>
+<p><a href="http://effbot.org/imagingbook/">http://effbot.org/imagingbook/</a></p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

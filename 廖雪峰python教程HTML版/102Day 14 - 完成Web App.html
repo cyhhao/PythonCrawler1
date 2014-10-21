@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 14 - 完成Web App</h4>
+                    <div class="x-wiki-info"><span>78次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>在Web App框架和基本流程跑通后，剩下的工作全部是体力活了：在Debug开发模式下完成后端所有API、前端所有页面。我们需要做的事情包括：</p>
+<p>对URL<code>/manage/</code>进行拦截，检查当前用户是否是管理员身份：</p>
+<pre><code>@interceptor(&#39;/manage/&#39;)
+def manage_interceptor(next):
+    user = ctx.request.user
+    if user and user.admin:
+        return next()
+    raise seeother(&#39;/signin&#39;)
+</code></pre><p>后端API包括：</p>
+<ul>
+<li><p>获取日志：GET /api/blogs</p>
+</li>
+<li><p>创建日志：POST /api/blogs</p>
+</li>
+<li><p>修改日志：POST /api/blogs/:blog_id</p>
+</li>
+<li><p>删除日志：POST /api/blogs/:blog_id/delete</p>
+</li>
+<li><p>获取评论：GET /api/comments</p>
+</li>
+<li><p>创建评论：POST /api/blogs/:blog_id/comments</p>
+</li>
+<li><p>删除评论：POST /api/comments/:comment_id/delete</p>
+</li>
+<li><p>创建新用户：POST /api/users</p>
+</li>
+<li><p>获取用户：GET /api/users</p>
+</li>
+</ul>
+<p>管理页面包括：</p>
+<ul>
+<li><p>评论列表页：GET /manage/comments</p>
+</li>
+<li><p>日志列表页：GET /manage/blogs</p>
+</li>
+<li><p>创建日志页：GET /manage/blogs/create</p>
+</li>
+<li><p>修改日志页：GET /manage/blogs/</p>
+</li>
+<li><p>用户列表页：GET /manage/users</p>
+</li>
+</ul>
+<p>用户浏览页面包括：</p>
+<ul>
+<li><p>注册页：GET /register</p>
+</li>
+<li><p>登录页：GET /signin</p>
+</li>
+<li><p>注销页：GET /signout</p>
+</li>
+<li><p>首页：GET /</p>
+</li>
+<li><p>日志详情页：GET /blog/:blog_id</p>
+</li>
+</ul>
+<p>把所有的功能实现，我们第一个Web App就宣告完成！</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

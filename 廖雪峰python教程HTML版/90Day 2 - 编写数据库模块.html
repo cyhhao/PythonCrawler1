@@ -1,0 +1,166 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 2 - 编写数据库模块</h4>
+                    <div class="x-wiki-info"><span>2294次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>在一个Web App中，所有数据，包括用户信息、发布的日志、评论等，都存储在数据库中。在awesome-python-app中，我们选择MySQL作为数据库。</p>
+<p>Web App里面有很多地方都要访问数据库。访问数据库需要创建数据库连接、游标对象，然后执行SQL语句，最后处理异常，清理资源。这些访问数据库的代码如果分散到各个函数中，势必无法维护，也不利于代码复用。</p>
+<p>此外，在一个Web App中，有多个用户会同时访问，系统以多进程或多线程模式来处理每个用户的请求。假设以多线程为例，每个线程在访问数据库时，都必须创建仅属于自身的连接，对别的线程不可见，否则，就会造成数据库操作混乱。</p>
+<p>所以，我们还要创建一个简单可靠的数据库访问模型，在一个线程中，能既安全又简单地操作数据库。</p>
+<p>为什么不选择SQLAlchemy？SQLAlchemy太庞大，过度地面向对象设计导致API太复杂。</p>
+<p>所以我们决定自己设计一个封装基本的SELECT、INSERT、UPDATE和DELETE操作的db模块：<code>transwarp.db</code>。</p>
+<h3 id="-db-">设计db接口</h3>
+<p>设计底层模块的原则是，根据上层调用者设计简单易用的API接口，然后，实现模块内部代码。</p>
+<p>假设<code>transwarp.db</code>模块已经编写完毕，我们希望以这样的方式来调用它：</p>
+<p>首先，初始化数据库连接信息，通过<code>create_engine()</code>函数：</p>
+<pre><code>from transwarp import db
+db.create_engine(user=&#39;root&#39;, password=&#39;password&#39;, database=&#39;test&#39;, host=&#39;127.0.0.1&#39;, port=3306)
+</code></pre><p>然后，就可以直接操作SQL了。</p>
+<p>如果需要做一个查询，可以直接调用<code>select()</code>方法，返回的是list，每一个元素是用dict表示的对应的行：</p>
+<pre><code>users = db.select(&#39;select * from user&#39;)
+# users =&gt;
+# [
+#     { &quot;id&quot;: 1, &quot;name&quot;: &quot;Michael&quot;},
+#     { &quot;id&quot;: 2, &quot;name&quot;: &quot;Bob&quot;},
+#     { &quot;id&quot;: 3, &quot;name&quot;: &quot;Adam&quot;}
+# ]
+</code></pre><p>如果要执行INSERT、UPDATE或DELETE操作，执行<code>update()</code>方法，返回受影响的行数：</p>
+<pre><code>n = db.update(&#39;insert into user(id, name) values(?, ?)&#39;, 4, &#39;Jack&#39;)
+</code></pre><p><code>update()</code>函数签名为：</p>
+<pre><code>update(sql, *args)
+</code></pre><p>统一用<code>?</code>作为占位符，并传入可变参数来绑定，从根本上避免<a href="http://zh.wikipedia.org/wiki/SQL%E8%B3%87%E6%96%99%E9%9A%B1%E7%A2%BC%E6%94%BB%E6%93%8A">SQL注入攻击</a>。</p>
+<p>每个<code>select()</code>或<code>update()</code>调用，都隐含地自动打开并关闭了数据库连接，这样，上层调用者就完全不必关心数据库底层连接。</p>
+<p>但是，如果要在一个数据库连接里执行多个SQL语句怎么办？我们用一个with语句实现：</p>
+<pre><code>with db.connection():
+    db.select(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+</code></pre><p>如果要在一个数据库事务中执行多个SQL语句怎么办？我们还是用一个with语句实现：</p>
+<pre><code>with db.transaction():
+    db.select(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+</code></pre><h3 id="-db-">实现db模块</h3>
+<p>由于模块是全局对象，模块变量是全局唯一变量，所以，有两个重要的模块变量：</p>
+<pre><code># db.py
+
+# 数据库引擎对象:
+class _Engine(object):
+    def __init__(self, connect):
+        self._connect = connect
+    def connect(self):
+        return self._connect()
+
+engine = None
+
+# 持有数据库连接的上下文对象:
+class _DbCtx(threading.local):
+    def __init__(self):
+        self.connection = None
+        self.transactions = 0
+
+    def is_init(self):
+        return not self.connection is None
+
+    def init(self):
+        self.connection = _LasyConnection()
+        self.transactions = 0
+
+    def cleanup(self):
+        self.connection.cleanup()
+        self.connection = None
+
+    def cursor(self):
+        return self.connection.cursor()
+
+_db_ctx = _DbCtx()
+</code></pre><p>由于<code>_db_ctx</code>是<code>threadlocal</code>对象，所以，它持有的数据库连接对于每个线程看到的都是不一样的。任何一个线程都无法访问到其他线程持有的数据库连接。</p>
+<p>有了这两个全局变量，我们继续实现数据库连接的上下文，目的是自动获取和释放连接：</p>
+<pre><code>class _ConnectionCtx(object):
+    def __enter__(self):
+        global _db_ctx
+        self.should_cleanup = False
+        if not _db_ctx.is_init():
+            _db_ctx.init()
+            self.should_cleanup = True
+        return self
+
+    def __exit__(self, exctype, excvalue, traceback):
+        global _db_ctx
+        if self.should_cleanup:
+            _db_ctx.cleanup()
+
+def connection():
+    return _ConnectionCtx()
+</code></pre><p>定义了<code>__enter__()</code>和<code>__exit__()</code>的对象可以用于with语句，确保任何情况下<code>__exit__()</code>方法可以被调用。</p>
+<p>把<code>_ConnectionCtx</code>的作用域作用到一个函数调用上，可以这么写：</p>
+<pre><code>with connection():
+    do_some_db_operation()
+</code></pre><p>但是更简单的写法是写个@decorator：</p>
+<pre><code>@with_connection
+def do_some_db_operation():
+    pass
+</code></pre><p>这样，我们实现<code>select()</code>、<code>update()</code>方法就更简单了：</p>
+<pre><code>@with_connection
+def select(sql, *args):
+    pass
+
+@with_connection
+def update(sql, *args):
+    pass
+</code></pre><p>注意到Connection对象是存储在<code>_DbCtx</code>这个<code>threadlocal</code>对象里的，因此，嵌套使用<code>with connection()</code>也没有问题。<code>_DbCtx</code>永远检测当前是否已存在Connection，如果存在，直接使用，如果不存在，则打开一个新的Connection。</p>
+<p>对于transaction也是类似的，<code>with transaction()</code>定义了一个数据库事务：</p>
+<pre><code>with db.transaction():
+    db.select(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+    db.update(&#39;...&#39;)
+</code></pre><p>函数作用域的事务也有一个简化的@decorator：</p>
+<pre><code>@with_transaction
+def do_in_transaction():
+    pass
+</code></pre><p>事务也可以嵌套，内层事务会自动合并到外层事务中，这种事务模型足够满足99%的需求。</p>
+<p>事务嵌套比Connection嵌套复杂一点，因为事务嵌套需要计数，每遇到一层嵌套就+1，离开一层嵌套就-1，最后到0时提交事务：</p>
+<pre><code>class _TransactionCtx(object):
+    def __enter__(self):
+        global _db_ctx
+        self.should_close_conn = False
+        if not _db_ctx.is_init():
+            _db_ctx.init()
+            self.should_close_conn = True
+        _db_ctx.transactions = _db_ctx.transactions + 1
+        return self
+
+    def __exit__(self, exctype, excvalue, traceback):
+        global _db_ctx
+        _db_ctx.transactions = _db_ctx.transactions - 1
+        try:
+            if _db_ctx.transactions==0:
+                if exctype is None:
+                    self.commit()
+                else:
+                    self.rollback()
+        finally:
+            if self.should_close_conn:
+                _db_ctx.cleanup()
+
+    def commit(self):
+        global _db_ctx
+        try:
+            _db_ctx.connection.commit()
+        except:
+            _db_ctx.connection.rollback()
+            raise
+
+    def rollback(self):
+        global _db_ctx
+        _db_ctx.connection.rollback()
+</code></pre><p>最后，把<code>select()</code>和<code>update()</code>方法实现了，db模块就完成了。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

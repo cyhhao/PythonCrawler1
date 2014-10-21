@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 3 - 编写ORM</h4>
+                    <div class="x-wiki-info"><span>687次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>有了db模块，操作数据库直接写SQL就很方便。但是，我们还缺少ORM。如果有了ORM，就可以用类似这样的语句获取User对象：</p>
+<pre><code>user = User.get(&#39;123&#39;)
+</code></pre><p>而不是写SQL然后再转换成User对象：</p>
+<pre><code>u = db.select_one(&#39;select * from users where id=?&#39;, &#39;123&#39;)
+user = User(**u)
+</code></pre><p>所以我们开始编写ORM模块：<code>transwarp.orm</code>。</p>
+<h3 id="-orm-">设计ORM接口</h3>
+<p>和设计db模块类似，设计ORM也是从上层调用者角度来设计。</p>
+<p>我们先考虑如何定义一个User对象，然后把数据库表<code>users</code>和它关联起来。</p>
+<pre><code>from transwarp.orm import Model, StringField, IntegerField
+
+class User(Model):
+    __table__ = &#39;users&#39;
+    id = IntegerField(primary_key=True)
+    name = StringField()
+</code></pre><p>注意到定义在<code>User</code>类中的<code>__table__</code>、<code>id</code>和<code>name</code>是类的属性，不是实例的属性。所以，在类级别上定义的属性用来描述<code>User</code>对象和表的映射关系，而实例属性必须通过<code>__init__()</code>方法去初始化，所以两者互不干扰：</p>
+<pre><code># 创建实例:
+user = User(id=123, name=&#39;Michael&#39;)
+# 存入数据库:
+user.insert()
+</code></pre><h3 id="-orm-">实现ORM模块</h3>
+<p>有了定义，我们就可以开始实现ORM模块。</p>
+<p>首先要定义的是所有ORM映射的基类<code>Model</code>：</p>
+<pre><code>class Model(dict):
+    __metaclass__ = ModelMetaclass
+
+    def __init__(self, **kw):
+        super(Model, self).__init__(**kw)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(r&quot;&#39;Dict&#39; object has no attribute &#39;%s&#39;&quot; % key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+</code></pre><p><code>Model</code>从<code>dict</code>继承，所以具备所有<code>dict</code>的功能，同时又实现了特殊方法<code>__getattr__()</code>和<code>__setattr__()</code>，所以又可以像引用普通字段那样写：</p>
+<pre><code>&gt;&gt;&gt; user[&#39;id&#39;]
+123
+&gt;&gt;&gt; user.id
+123
+</code></pre><p><code>Model</code>只是一个基类，如何将具体的子类如<code>User</code>的映射信息读取出来呢？答案就是通过metaclass：<code>ModelMetaclass</code>：</p>
+<pre><code>class ModelMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        mapping = ... # 读取cls的Field字段
+        primary_key = ... # 查找primary_key字段
+        __table__ = cls.__talbe__ # 读取cls的__table__字段
+        # 给cls增加一些字段：
+        attrs[&#39;__mapping__&#39;] = mapping
+        attrs[&#39;__primary_key__&#39;] = __primary_key__
+        attrs[&#39;__table__&#39;] = __table__
+        return type.__new__(cls, name, bases, attrs)
+</code></pre><p>这样，任何继承自<code>Model</code>的类（比如<code>User</code>），会自动通过<code>ModelMetaclass</code>扫描映射关系，并存储到自身的class中。</p>
+<p>然后，我们往<code>Model</code>类添加class方法，就可以让所有子类调用class方法：</p>
+<pre><code>class Model(dict):
+
+    ...
+
+    @classmethod
+    def get(cls, pk):
+        d = db.select_one(&#39;select * from %s where %s=?&#39; % (cls.__table__, cls.__primary_key__.name), pk)
+        return cls(**d) if d else None
+</code></pre><p><code>User</code>类就可以通过类方法实现主键查找：</p>
+<pre><code>user = User.get(&#39;123&#39;)
+</code></pre><p>往<code>Model</code>类添加实例方法，就可以让所有子类调用实例方法：</p>
+<pre><code>class Model(dict):
+
+    ...
+
+    def insert(self):
+        params = {}
+        for k, v in self.__mappings__.iteritems():
+            params[v.name] = getattr(self, k)
+        db.insert(self.__table__, **params)
+        return self
+</code></pre><p>这样，就可以把一个<code>User</code>实例存入数据库：</p>
+<pre><code>user = User(id=123, name=&#39;Michael&#39;)
+user.insert()
+</code></pre><p>最后一步是完善ORM，对于查找，我们可以实现以下方法：</p>
+<ul>
+<li><p>find_first()</p>
+</li>
+<li><p>find_all()</p>
+</li>
+<li><p>find_by()</p>
+</li>
+</ul>
+<p>对于count，可以实现：</p>
+<ul>
+<li><p>count_all()</p>
+</li>
+<li><p>count_by()</p>
+</li>
+</ul>
+<p>以及<code>update()</code>和<code>delete()</code>方法。</p>
+<p>最后看看我们实现的ORM模块一共多少行代码？加上注释和doctest才仅仅300多行。用Python写一个ORM是不是很容易呢？</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

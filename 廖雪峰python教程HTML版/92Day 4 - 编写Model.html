@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>Day 4 - 编写Model</h4>
+                    <div class="x-wiki-info"><span>363次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>有了ORM，我们就可以把Web App需要的3个表用<code>Model</code>表示出来：</p>
+<pre><code>import time, uuid
+
+from transwarp.db import next_id
+from transwarp.orm import Model, StringField, BooleanField, FloatField, TextField
+
+class User(Model):
+    __table__ = &#39;users&#39;
+
+    id = StringField(primary_key=True, default=next_id, ddl=&#39;varchar(50)&#39;)
+    email = StringField(updatable=False, ddl=&#39;varchar(50)&#39;)
+    password = StringField(ddl=&#39;varchar(50)&#39;)
+    admin = BooleanField()
+    name = StringField(ddl=&#39;varchar(50)&#39;)
+    image = StringField(ddl=&#39;varchar(500)&#39;)
+    created_at = FloatField(updatable=False, default=time.time)
+
+class Blog(Model):
+    __table__ = &#39;blogs&#39;
+
+    id = StringField(primary_key=True, default=next_id, ddl=&#39;varchar(50)&#39;)
+    user_id = StringField(updatable=False, ddl=&#39;varchar(50)&#39;)
+    user_name = StringField(ddl=&#39;varchar(50)&#39;)
+    user_image = StringField(ddl=&#39;varchar(500)&#39;)
+    name = StringField(ddl=&#39;varchar(50)&#39;)
+    summary = StringField(ddl=&#39;varchar(200)&#39;)
+    content = TextField()
+    created_at = FloatField(updatable=False, default=time.time)
+
+class Comment(Model):
+    __table__ = &#39;comments&#39;
+
+    id = StringField(primary_key=True, default=next_id, ddl=&#39;varchar(50)&#39;)
+    blog_id = StringField(updatable=False, ddl=&#39;varchar(50)&#39;)
+    user_id = StringField(updatable=False, ddl=&#39;varchar(50)&#39;)
+    user_name = StringField(ddl=&#39;varchar(50)&#39;)
+    user_image = StringField(ddl=&#39;varchar(500)&#39;)
+    content = TextField()
+    created_at = FloatField(updatable=False, default=time.time)
+</code></pre><p>在编写ORM时，给一个Field增加一个<code>default</code>参数可以让ORM自己填入缺省值，非常方便。并且，缺省值可以作为函数对象传入，在调用<code>insert()</code>时自动计算。</p>
+<p>例如，主键<code>id</code>的缺省值是函数<code>next_id</code>，创建时间<code>created_at</code>的缺省值是函数<code>time.time</code>，可以自动设置当前日期和时间。</p>
+<p>日期和时间用<code>float</code>类型存储在数据库中，而不是<code>datetime</code>类型，这么做的好处是不必关心数据库的时区以及时区转换问题，排序非常简单，显示的时候，只需要做一个<code>float</code>到<code>str</code>的转换，也非常容易。</p>
+<h3 id="-">初始化数据库表</h3>
+<p>如果表的数量很少，可以手写创建表的SQL脚本：</p>
+<pre><code>-- schema.sql
+
+drop database if exists awesome;
+
+create database awesome;
+
+use awesome;
+
+grant select, insert, update, delete on awesome.* to &#39;www-data&#39;@&#39;localhost&#39; identified by &#39;www-data&#39;;
+
+create table users (
+    `id` varchar(50) not null,
+    `email` varchar(50) not null,
+    `password` varchar(50) not null,
+    `admin` bool not null,
+    `name` varchar(50) not null,
+    `image` varchar(500) not null,
+    `created_at` real not null,
+    unique key `idx_email` (`email`),
+    key `idx_created_at` (`created_at`),
+    primary key (`id`)
+) engine=innodb default charset=utf8;
+
+create table blogs (
+    `id` varchar(50) not null,
+    `user_id` varchar(50) not null,
+    `user_name` varchar(50) not null,
+    `user_image` varchar(500) not null,
+    `name` varchar(50) not null,
+    `summary` varchar(200) not null,
+    `content` mediumtext not null,
+    `created_at` real not null,
+    key `idx_created_at` (`created_at`),
+    primary key (`id`)
+) engine=innodb default charset=utf8;
+
+create table comments (
+    `id` varchar(50) not null,
+    `blog_id` varchar(50) not null,
+    `user_id` varchar(50) not null,
+    `user_name` varchar(50) not null,
+    `user_image` varchar(500) not null,
+    `content` mediumtext not null,
+    `created_at` real not null,
+    key `idx_created_at` (`created_at`),
+    primary key (`id`)
+) engine=innodb default charset=utf8;
+</code></pre><p>如果表的数量很多，可以从<code>Model</code>对象直接通过脚本自动生成SQL脚本，使用更简单。</p>
+<p>把SQL脚本放到MySQL命令行里执行：</p>
+<pre><code>$ mysql -u root -p &lt; schema.sql
+</code></pre><p>我们就完成了数据库表的初始化。</p>
+<h3 id="-">编写数据访问代码</h3>
+<p>接下来，就可以真正开始编写代码操作对象了。比如，对于<code>User</code>对象，我们就可以做如下操作：</p>
+<pre><code># test_db.py
+
+from models import User, Blog, Comment
+
+from transwarp import db
+
+db.create_engine(user=&#39;www-data&#39;, password=&#39;www-data&#39;, database=&#39;awesome&#39;)
+
+u = User(name=&#39;Test&#39;, email=&#39;test@example.com&#39;, password=&#39;1234567890&#39;, image=&#39;about:blank&#39;)
+
+u.insert()
+
+print &#39;new user id:&#39;, u.id
+
+u1 = User.find_first(&#39;where email=?&#39;, &#39;test@example.com&#39;)
+print &#39;find user\&#39;s name:&#39;, u1.name
+
+u1.delete()
+
+u2 = User.find_first(&#39;where email=?&#39;, &#39;test@example.com&#39;)
+print &#39;find user:&#39;, u2
+</code></pre><p>可以在MySQL客户端命令行查询，看看数据是不是正常存储到MySQL里面了。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

@@ -1,0 +1,34 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>匿名函数</h4>
+                    <div class="x-wiki-info"><span>1754次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>当我们在传入函数时，有些时候，不需要显式地定义函数，直接传入匿名函数更方便。</p>
+<p>在Python中，对匿名函数提供了有限支持。还是以<code>map()</code>函数为例，计算f(x)=x<sup>2</sup>时，除了定义一个<code>f(x)</code>的函数外，还可以直接传入匿名函数：</p>
+<pre><code>&gt;&gt;&gt; map(lambda x: x * x, [1, 2, 3, 4, 5, 6, 7, 8, 9])
+[1, 4, 9, 16, 25, 36, 49, 64, 81]
+</code></pre><p>通过对比可以看出，匿名函数<code>lambda x: x * x</code>实际上就是：</p>
+<pre><code>def f(x):
+    return x * x
+</code></pre><p>关键字<code>lambda</code>表示匿名函数，冒号前面的<code>x</code>表示函数参数。</p>
+<p>匿名函数有个限制，就是只能有一个表达式，不用写<code>return</code>，返回值就是该表达式的结果。</p>
+<p>用匿名函数有个好处，因为函数没有名字，不必担心函数名冲突。此外，匿名函数也是一个函数对象，也可以把匿名函数赋值给一个变量，再利用变量来调用该函数：</p>
+<pre><code>&gt;&gt;&gt; f = lambda x: x * x
+&gt;&gt;&gt; f
+&lt;function &lt;lambda&gt; at 0x10453d7d0&gt;
+&gt;&gt;&gt; f(5)
+25
+</code></pre><p>同样，也可以把匿名函数作为返回值返回，比如：</p>
+<pre><code>def build(x, y):
+    return lambda: x * x + y * y
+</code></pre><h3 id="-">小结</h3>
+<p>Python对匿名函数的支持有限，只有一些简单的情况下可以使用匿名函数。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

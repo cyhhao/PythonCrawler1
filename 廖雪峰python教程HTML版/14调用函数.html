@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>调用函数</h4>
+                    <div class="x-wiki-info"><span>3223次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>Python内置了很多有用的函数，我们可以直接调用。</p>
+<p>要调用一个函数，需要知道函数的名称和参数，比如求绝对值的函数<code>abs</code>，只有一个参数。可以直接从Python的官方网站查看文档：</p>
+<p><a href="http://docs.python.org/2/library/functions.html#abs">http://docs.python.org/2/library/functions.html#abs</a></p>
+<p>也可以在交互式命令行通过<code>help(abs)</code>查看<code>abs</code>函数的帮助信息。</p>
+<p>调用<code>abs</code>函数：</p>
+<pre><code>&gt;&gt;&gt; abs(100)
+100
+&gt;&gt;&gt; abs(-20)
+20
+&gt;&gt;&gt; abs(12.34)
+12.34
+</code></pre><p>调用函数的时候，如果传入的参数数量不对，会报<code>TypeError</code>的错误，并且Python会明确地告诉你：abs()有且仅有1个参数，但给出了两个：</p>
+<pre><code>&gt;&gt;&gt; abs(1, 2)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: abs() takes exactly one argument (2 given)
+</code></pre><p>如果传入的参数数量是对的，但参数类型不能被函数所接受，也会报<code>TypeError</code>的错误，并且给出错误信息：str是错误的参数类型：</p>
+<pre><code>&gt;&gt;&gt; abs(&#39;a&#39;)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: bad operand type for abs(): &#39;str&#39;
+</code></pre><p>而比较函数<code>cmp(x, y)</code>就需要两个参数，如果<code>x&lt;y</code>，返回<code>-1</code>，如果<code>x==y</code>，返回<code>0</code>，如果<code>x&gt;y</code>，返回<code>1</code>：</p>
+<pre><code>&gt;&gt;&gt; cmp(1, 2)
+-1
+&gt;&gt;&gt; cmp(2, 1)
+1
+&gt;&gt;&gt; cmp(3, 3)
+0
+</code></pre><h3 id="-">数据类型转换</h3>
+<p>Python内置的常用函数还包括数据类型转换函数，比如<code>int()</code>函数可以把其他数据类型转换为整数：</p>
+<pre><code>&gt;&gt;&gt; int(&#39;123&#39;)
+123
+&gt;&gt;&gt; int(12.34)
+12
+&gt;&gt;&gt; float(&#39;12.34&#39;)
+12.34
+&gt;&gt;&gt; str(1.23)
+&#39;1.23&#39;
+&gt;&gt;&gt; unicode(100)
+u&#39;100&#39;
+&gt;&gt;&gt; bool(1)
+True
+&gt;&gt;&gt; bool(&#39;&#39;)
+False
+</code></pre><p>函数名其实就是指向一个函数对象的引用，完全可以把函数名赋给一个变量，相当于给这个函数起了一个“别名”：</p>
+<pre><code>&gt;&gt;&gt; a = abs # 变量a指向abs函数
+&gt;&gt;&gt; a(-1) # 所以也可以通过a调用abs函数
+1
+</code></pre><h3 id="-">小结</h3>
+<p>调用Python的函数，需要根据函数定义，传入正确的参数。如果函数调用出错，一定要学会看错误信息，所以英文很重要！</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

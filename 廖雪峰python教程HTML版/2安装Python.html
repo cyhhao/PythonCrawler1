@@ -1,0 +1,50 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>安装Python</h4>
+                    <div class="x-wiki-info"><span>6838次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>因为Python是跨平台的，它可以运行在Windows、Mac和各种Linux/Unix系统上。在Windows上写Python程序，放到Linux上也是能够运行的。</p>
+<p>要开始学习Python编程，首先就得把Python安装到你的电脑里。安装后，你会得到Python解释器（就是负责运行Python程序的），一个命令行交互环境，还有一个简单的集成开发环境。</p>
+<h3 id="2-x-3-x">2.x还是3.x</h3>
+<p>目前，Python有两个版本，一个是2.x版，一个是3.x版，这两个版本是不兼容的，因为现在Python正在朝着3.x版本进化，在进化过程中，大量的针对2.x版本的代码要修改后才能运行，所以，目前有许多第三方库还暂时无法在3.x上使用。</p>
+<p>为了保证你的程序能用到大量的第三方库，我们的教程仍以2.x版本为基础，确切地说，是2.7版本。请确保你的电脑上安装的Python版本是2.7.x，这样，你才能无痛学习这个教程。</p>
+<h3 id="-mac-python">在Mac上安装Python</h3>
+<p>如果你正在使用Mac，系统是OS X 10.8或者最新的10.9 Mavericks，恭喜你，系统自带了Python 2.7。如果你的系统版本低于10.8，请自行备份系统并免费升级到最新的10.9，就可以获得Python 2.7。</p>
+<p>查看系统版本的办法是点击左上角的苹果图标，选择“关于本机”：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001386815626411687cd54d188b46aab2f737c81fe4bd3c000/0" alt="osx-10.9"></p>
+<h3 id="-linux-python">在Linux上安装Python</h3>
+<p>如果你正在使用Linux，那我可以假定你有Linux系统管理经验，自行安装Python 2.7应该没有问题，否则，请换回Windows系统。</p>
+<p>对于大量的目前仍在使用Windows的同学，如果短期内没有打算换Mac，就可以继续阅读以下内容。</p>
+<h3 id="-windows-python">在Windows上安装Python</h3>
+<p>首先，从Python的官方网站<a href="http://www.python.org/">www.python.org</a>下载最新的2.7.6版本，地址是这个：</p>
+<p><a href="http://www.python.org/ftp/python/2.7.6/python-2.7.6.msi">http://www.python.org/ftp/python/2.7.6/python-2.7.6.msi</a></p>
+<p>然后，运行下载的MSI安装包，不需要更改任何默认设置，直接一路点“Next”即可完成安装：</p>
+<p><div data-type="video" data-width="600" data-height="440" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/install-python.mp4"></div></p>
+
+<p>默认会安装到C:\Python27目录下，但是当你兴致勃勃地打开命令提示符窗口，敲入python后，会得到：</p>
+<pre><code>‘python’不是内部或外部命令，也不是可运行的程序或批处理文件。
+</code></pre><p><div data-type="video" data-width="600" data-height="440" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/cmd-not-found.mp4"></div></p>
+
+<p>这是因为Windows会根据一个Path的环境变量设定的路径去查找python.exe，如果没找到，就会报错。解决办法是把python.exe所在的路径<code>C:\Python27</code>添加到Path中。</p>
+<p>在控制面板中打开“系统属性”，点击“高级”，“环境变量”，打开“环境变量”窗口，在系统变量中，找到“Path”变量，然后点击“编辑”：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0013868147773913fb7068693f34364a500e668cdddedc6000/0" alt="windows环境变量Path"></p>
+<p>在“编辑系统变量”的窗口中，可以看到，变量名是Path，在变量值的最后面，先添加一个分号“;”（注意用英文输入法，千万不要输入中文分号），再写上C:\Python27（如果安装的时候没有更改过安装目录），然后连续点“确定”，“确定”，“确定”把所有窗口都关掉。</p>
+<p><div data-type="video" data-width="600" data-height="440" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/set-env.mp4"></div></p>
+
+<p>现在，再打开一个新的命令行窗口（一定要关掉原来的命令行窗口，再新开一个），输入python：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0013868165417047ec57a2e466e4861a525d106e0b7e6b6000/0" alt="python-command"></p>
+<p>看到上面的画面，就说明Python安装成功！</p>
+<p>你看到提示符<code>&gt;&gt;&gt;</code>就表示我们已经在Python交互式环境中了，可以输入任何Python代码，回车后会立刻得到执行结果。现在，输入<code>exit()</code>并回车，就可以退出Python交互式环境（直接关掉命令行窗口也可以！）。</p>
+<p><div data-type="video" data-width="600" data-height="440" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/run-python.mp4"></div></p>
+
+<h3 id="-">小结</h3>
+<p>学会如何把Python安装到计算机中，并且熟练打开和退出Python交互式环境。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

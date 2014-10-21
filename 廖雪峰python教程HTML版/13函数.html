@@ -1,0 +1,41 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>函数</h4>
+                    <div class="x-wiki-info"><span>2258次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>我们知道圆的面积计算公式为：</p>
+<p>S = πr<sup>2</sup></p>
+<p>当我们知道半径<code>r</code>的值时，就可以根据公式计算出面积。假设我们需要计算3个不同大小的圆的面积：</p>
+<pre><code>r1 = 12.34
+r2 = 9.08
+r3 = 73.1
+s1 = 3.14 * r1 * r1
+s2 = 3.14 * r2 * r2
+s3 = 3.14 * r3 * r3
+</code></pre><p>当代码出现有规律的重复的时候，你就需要当心了，每次写<code>3.14 * x * x</code>不仅很麻烦，而且，如果要把<code>3.14</code>改成<code>3.14159265359</code>的时候，得全部替换。</p>
+<p>有了函数，我们就不再每次写<code>s = 3.14 * x * x</code>，而是写成更有意义的函数调用<code>s = area_of_circle(x)</code>，而函数<code>area_of_circle</code>本身只需要写一次，就可以多次调用。</p>
+<p>基本上所有的高级语言都支持函数，Python也不例外。Python不但能非常灵活地定义函数，而且本身内置了很多有用的函数，可以直接调用。</p>
+<h3 id="-">抽象</h3>
+<p>抽象是数学中非常常见的概念。举个例子：</p>
+<p>计算数列的和，比如：<code>1 + 2 + 3 + ... + 100</code>，写起来十分不方便，于是数学家发明了求和符号∑，可以把<code>1 + 2 + 3 + ... + 100</code>记作：</p>
+<p>100</p>
+<p><span style="font-size:3em">∑</span><span style="font-size:2em">n</span></p>
+<p>n=1</p>
+<p>这种抽象记法非常强大，因为我们看到∑就可以理解成求和，而不是还原成低级的加法运算。</p>
+<p>而且，这种抽象记法是可扩展的，比如：</p>
+<p>100</p>
+<p><span style="font-size:3em">∑</span><span style="font-size:2em">(n<sup>2</sup>+1)</span></p>
+<p>n=1</p>
+<p>还原成加法运算就变成了：</p>
+<p>(1 x 1 + 1) + (2 x 2 + 1) + (3 x 3 + 1) + ... + (100 x 100 + 1)</p>
+<p>可见，借助抽象，我们才能不关心底层的具体计算过程，而直接在更高的层次上思考问题。</p>
+<p>写计算机程序也是一样，函数就是最基本的一种代码抽象的方式。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

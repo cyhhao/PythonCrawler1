@@ -1,0 +1,142 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>高阶函数</h4>
+                    <div class="x-wiki-info"><span>2921次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><h3 id="-">传入函数</h3>
+<p>要理解“函数本身也可以作为参数传入”，可以从Python内建的map/reduce函数入手。</p>
+<p>如果你读过Google的那篇大名鼎鼎的论文“<a href="http://research.google.com/archive/mapreduce.html">MapReduce: Simplified Data Processing on Large Clusters</a>”，你就能大概明白map/reduce的概念。</p>
+<p>我们先看map。<code>map()</code>函数接收两个参数，一个是函数，一个是序列，<code>map</code>将传入的函数依次作用到序列的每个元素，并把结果作为新的list返回。</p>
+<p>举例说明，比如我们有一个函数f(x)=x<sup>2</sup>，要把这个函数作用在一个list <code>[1, 2, 3, 4, 5, 6, 7, 8, 9]</code>上，就可以用<code>map()</code>实现如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0013879622109990efbf9d781704b02994ba96765595f56000/0" alt="map"></p>
+<p>现在，我们用Python代码实现：</p>
+<pre><code>&gt;&gt;&gt; def f(x):
+...     return x * x
+...
+&gt;&gt;&gt; map(f, [1, 2, 3, 4, 5, 6, 7, 8, 9])
+[1, 4, 9, 16, 25, 36, 49, 64, 81]
+</code></pre><p>请注意我们定义的函数<code>f</code>。当我们写<code>f</code>时，指的是函数对象本身，当我们写<code>f(1)</code>时，指的是调用f函数，并传入参数1，期待返回结果1。</p>
+<p>因此，<code>map()</code>传入的第一个参数是<code>f</code>，即函数对象本身。</p>
+<p>像<code>map()</code>函数这种能够接收函数作为参数的函数，称之为高阶函数（Higher-order function）。</p>
+<p>你可能会想，不需要<code>map()</code>函数，写一个循环，也可以计算出结果：</p>
+<pre><code>L = []
+for n in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+    L.append(f(n))
+print L
+</code></pre><p>的确可以，但是，从上面的循环代码，能一眼看明白“把f(x)作用在list的每一个元素并把结果生成一个新的list”吗？</p>
+<p>所以，<code>map()</code>作为高阶函数，事实上它把运算规则抽象了，因此，我们不但可以计算简单的f(x)=x<sup>2</sup>，还可以计算任意复杂的函数。</p>
+<p>再看reduce的用法。reduce把一个函数作用在一个序列[x1, x2, x3...]上，这个函数必须接收两个参数，reduce把结果继续和序列的下一个元素做累积计算，其效果就是：</p>
+<pre><code>reduce(f, [x1, x2, x3, x4]) = f(f(f(x1, x2), x3), x4)
+</code></pre><p>比方说对一个序列求和，就可以用reduce实现：</p>
+<pre><code>&gt;&gt;&gt; def add(x, y):
+...     return x + y
+...
+&gt;&gt;&gt; reduce(add, [1, 3, 5, 7, 9])
+25
+</code></pre><p>当然求和运算可以直接用Python内建函数<code>sum()</code>，没必要动用reduce。</p>
+<p>但是如果要把序列<code>[1, 3, 5, 7, 9]</code>变换成整数13579，reduce就可以派上用场：</p>
+<pre><code>&gt;&gt;&gt; def fn(x, y):
+...     return x * 10 + y
+...
+&gt;&gt;&gt; reduce(fn, [1, 3, 5, 7, 9])
+13579
+</code></pre><p>这个例子本身没多大用处，但是，如果考虑到字符串<code>str</code>也是一个序列，对上面的例子稍加改动，配合<code>map()</code>，我们就可以写出把<code>str</code>转换为<code>int</code>的函数：</p>
+<pre><code>&gt;&gt;&gt; def fn(x, y):
+...     return x * 10 + y
+...
+&gt;&gt;&gt; def char2num(s):
+...     return {&#39;0&#39;: 0, &#39;1&#39;: 1, &#39;2&#39;: 2, &#39;3&#39;: 3, &#39;4&#39;: 4, &#39;5&#39;: 5, &#39;6&#39;: 6, &#39;7&#39;: 7, &#39;8&#39;: 8, &#39;9&#39;: 9}[s]
+...
+&gt;&gt;&gt; reduce(fn, map(char2num, &#39;13579&#39;))
+13579
+</code></pre><p>整理成一个<code>str2int</code>的函数就是：</p>
+<pre><code>def str2int(s):
+    def fn(x, y):
+        return x * 10 + y
+    def char2num(s):
+        return {&#39;0&#39;: 0, &#39;1&#39;: 1, &#39;2&#39;: 2, &#39;3&#39;: 3, &#39;4&#39;: 4, &#39;5&#39;: 5, &#39;6&#39;: 6, &#39;7&#39;: 7, &#39;8&#39;: 8, &#39;9&#39;: 9}[s]
+    return reduce(fn, map(char2num, s))
+</code></pre><p>还可以用lambda函数进一步简化成：</p>
+<pre><code>def char2num(s):
+    return {&#39;0&#39;: 0, &#39;1&#39;: 1, &#39;2&#39;: 2, &#39;3&#39;: 3, &#39;4&#39;: 4, &#39;5&#39;: 5, &#39;6&#39;: 6, &#39;7&#39;: 7, &#39;8&#39;: 8, &#39;9&#39;: 9}[s]
+
+def str2int(s):
+    return reduce(lambda x,y: x*10+y, map(char2num, s))
+</code></pre><p>也就是说，假设Python没有提供<code>int()</code>函数，你完全可以自己写一个把字符串转化为整数的函数，而且只需要几行代码！</p>
+<p>lambda函数的用法在下一节介绍。</p>
+<h3 id="-">排序算法</h3>
+<p>排序也是在程序中经常用到的算法。无论使用冒泡排序还是快速排序，排序的核心是比较两个元素的大小。如果是数字，我们可以直接比较，但如果是字符串或者两个dict呢？直接比较数学上的大小是没有意义的，因此，比较的过程必须通过函数抽象出来。通常规定，对于两个元素<code>x</code>和<code>y</code>，如果认为<code>x &lt; y</code>，则返回<code>-1</code>，如果认为<code>x == y</code>，则返回<code>0</code>，如果认为<code>x &gt; y</code>，则返回<code>1</code>，这样，排序算法就不用关心具体的比较过程，而是根据比较结果直接排序。</p>
+<p>Python内置的<code>sorted()</code>函数就可以对list进行排序：</p>
+<pre><code>&gt;&gt;&gt; sorted([36, 5, 12, 9, 21])
+[5, 9, 12, 21, 36]
+</code></pre><p>此外，<code>sorted()</code>函数也是一个高阶函数，它还可以接收一个比较函数来实现自定义的排序。比如，如果要倒序排序，我们就可以自定义一个<code>reversed_cmp</code>函数：</p>
+<pre><code>def reversed_cmp(x, y):
+    if x &gt; y:
+        return -1
+    if x &lt; y:
+        return 1
+    return 0
+</code></pre><p>传入自定义的比较函数<code>reversed_cmp</code>，就可以实现倒序排序：</p>
+<pre><code>&gt;&gt;&gt; sorted([36, 5, 12, 9, 21], reversed_cmp)
+[36, 21, 12, 9, 5]
+</code></pre><p>我们再看一个字符串排序的例子：</p>
+<pre><code>&gt;&gt;&gt; sorted([&#39;about&#39;, &#39;bob&#39;, &#39;Zoo&#39;, &#39;Credit&#39;])
+[&#39;Credit&#39;, &#39;Zoo&#39;, &#39;about&#39;, &#39;bob&#39;]
+</code></pre><p>默认情况下，对字符串排序，是按照ASCII的大小比较的，由于<code>&#39;Z&#39; &lt; &#39;a&#39;</code>，结果，大写字母<code>Z</code>会排在小写字母<code>a</code>的前面。</p>
+<p>现在，我们提出排序应该忽略大小写，按照字母序排序。要实现这个算法，不必对现有代码大加改动，只要我们能定义出忽略大小写的比较算法就可以：</p>
+<pre><code>def cmp_ignore_case(s1, s2):
+    u1 = s1.upper()
+    u2 = s2.upper()
+    if u1 &lt; u2:
+        return -1
+    if u1 &gt; u2:
+        return 1
+    return 0
+</code></pre><p>忽略大小写来比较两个字符串，实际上就是先把字符串都变成大写（或者都变成小写），再比较。</p>
+<p>这样，我们给<code>sorted</code>传入上述比较函数，即可实现忽略大小写的排序：</p>
+<pre><code>&gt;&gt;&gt; sorted([&#39;about&#39;, &#39;bob&#39;, &#39;Zoo&#39;, &#39;Credit&#39;], cmp_ignore_case)
+[&#39;about&#39;, &#39;bob&#39;, &#39;Credit&#39;, &#39;Zoo&#39;]
+</code></pre><p>从上述例子可以看出，高阶函数的抽象能力是非常强大的，而且，核心代码可以保持得非常简洁。</p>
+<h3 id="-">函数作为返回值</h3>
+<p>高阶函数除了可以接受函数作为参数外，还可以把函数作为结果值返回。</p>
+<p>我们来实现一个可变参数的求和。通常情况下，求和的函数是这样定义的：</p>
+<pre><code>def calc_sum(*args):
+    ax = 0
+    for n in args:
+        ax = ax + n
+    return ax
+</code></pre><p>但是，如果不需要立刻求和，而是在后面的代码中，根据需要再计算怎么办？可以不返回求和的结果，而是返回求和的函数！</p>
+<pre><code>def lazy_sum(*args):
+    def sum():
+        ax = 0
+        for n in args:
+            ax = ax + n
+        return ax
+    return sum
+</code></pre><p>当我们调用<code>lazy_sum()</code>时，返回的并不是求和结果，而是求和函数：</p>
+<pre><code>&gt;&gt;&gt; f = lazy_sum(1, 3, 5, 7, 9)
+&gt;&gt;&gt; f
+&lt;function sum at 0x10452f668&gt;
+</code></pre><p>调用函数<code>f</code>时，才真正计算求和的结果：</p>
+<pre><code>&gt;&gt;&gt; f()
+25
+</code></pre><p>在这个例子中，我们在函数<code>lazy_sum</code>中又定义了函数<code>sum</code>，并且，内部函数<code>sum</code>可以引用外部函数<code>lazy_sum</code>的参数和局部变量，当<code>lazy_sum</code>返回函数<code>sum</code>时，相关参数和变量都保存在返回的函数中，这种称为“闭包（Closure）”的程序结构拥有极大的威力。</p>
+<p>请再注意一点，当我们调用<code>lazy_sum()</code>时，每次调用都会返回一个新的函数，即使传入相同的参数：</p>
+<pre><code>&gt;&gt;&gt; f1 = lazy_sum(1, 3, 5, 7, 9)
+&gt;&gt;&gt; f2 = lazy_sum(1, 3, 5, 7, 9)
+&gt;&gt;&gt; f1==f2
+False
+</code></pre><p><code>f1()</code>和<code>f2()</code>的调用结果互不影响。</p>
+<h3 id="-">小结</h3>
+<p>把函数作为参数传入，或者把函数作为返回值返回，这样的函数称为高阶函数，函数式编程就是指这种高度抽象的编程范式。</p>
+<p>假设Python没有提供<code>map()</code>函数，请自行编写一个<code>my_map()</code>函数实现与<code>map()</code>相同的功能。</p>
+<p>Python提供的<code>sum()</code>函数可以接受一个list并求和，请编写一个<code>prod()</code>函数，可以接受一个list并利用<code>reduce()</code>求积。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

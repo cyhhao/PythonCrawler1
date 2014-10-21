@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>POP3收取邮件</h4>
+                    <div class="x-wiki-info"><span>1619次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>SMTP用于发送邮件，如果要收取邮件呢？</p>
+<p>收取邮件就是编写一个<strong>MUA</strong>作为客户端，从<strong>MDA</strong>把邮件获取到用户的电脑或者手机上。收取邮件最常用的协议是<strong>POP</strong>协议，目前版本号是3，俗称<strong>POP3</strong>。</p>
+<p>Python内置一个<code>poplib</code>模块，实现了POP3协议，可以直接用来收邮件。</p>
+<p>注意到POP3协议收取的不是一个已经可以阅读的邮件本身，而是邮件的原始文本，这和SMTP协议很像，SMTP发送的也是经过编码后的一大段文本。</p>
+<p>要把POP3收取的文本变成可以阅读的邮件，还需要用<code>email</code>模块提供的各种类来解析原始文本，变成可阅读的邮件对象。</p>
+<p>所以，收取邮件分两步：</p>
+<p>第一步：用<code>poplib</code>把邮件的原始文本下载到本地；</p>
+<p>第二部：用<code>email</code>解析原始文本，还原为邮件对象。</p>
+<h3 id="-pop3-">通过POP3下载邮件</h3>
+<p>POP3协议本身很简单，以下面的代码为例，我们来获取最新的一封邮件内容：</p>
+<pre><code>import poplib
+
+# 输入邮件地址, 口令和POP3服务器地址:
+email = raw_input(&#39;Email: &#39;)
+password = raw_input(&#39;Password: &#39;)
+pop3_server = raw_input(&#39;POP3 server: &#39;)
+
+# 连接到POP3服务器:
+server = poplib.POP3(pop3_server)
+# 可以打开或关闭调试信息:
+# server.set_debuglevel(1)
+# 可选:打印POP3服务器的欢迎文字:
+print(server.getwelcome())
+# 身份认证:
+server.user(email)
+server.pass_(password)
+# stat()返回邮件数量和占用空间:
+print(&#39;Messages: %s. Size: %s&#39; % server.stat())
+# list()返回所有邮件的编号:
+resp, mails, octets = server.list()
+# 可以查看返回的列表类似[&#39;1 82923&#39;, &#39;2 2184&#39;, ...]
+print(mails)
+# 获取最新一封邮件, 注意索引号从1开始:
+index = len(mails)
+resp, lines, octets = server.retr(index)
+# lines存储了邮件的原始文本的每一行,
+# 可以获得整个邮件的原始文本:
+msg_content = &#39;\r\n&#39;.join(lines)
+# 稍后解析出邮件:
+msg = Parser().parsestr(msg_content)
+# 可以根据邮件索引号直接从服务器删除邮件:
+# server.dele(index)
+# 关闭连接:
+server.quit()
+</code></pre><p>用POP3获取邮件其实很简单，要获取所有邮件，只需要循环使用<code>retr()</code>把每一封邮件内容拿到即可。真正麻烦的是把邮件的原始内容解析为可以阅读的邮件对象。</p>
+<h3 id="-">解析邮件</h3>
+<p>解析邮件的过程和上一节构造邮件正好相反，因此，先导入必要的模块：</p>
+<pre><code>import email
+from email.parser import Parser
+from email.header import decode_header
+from email.utils import parseaddr
+</code></pre><p>只需要一行代码就可以把邮件内容解析为<code>Message</code>对象：</p>
+<pre><code>msg = Parser().parsestr(msg_content)
+</code></pre><p>但是这个<code>Message</code>对象本身可能是一个<code>MIMEMultipart</code>对象，即包含嵌套的其他<code>MIMEBase</code>对象，嵌套可能还不止一层。</p>
+<p>所以我们要递归地打印出<code>Message</code>对象的层次结构：</p>
+<pre><code># indent用于缩进显示:
+def print_info(msg, indent=0):
+    if indent == 0:
+        # 邮件的From, To, Subject存在于根对象上:
+        for header in [&#39;From&#39;, &#39;To&#39;, &#39;Subject&#39;]:
+            value = msg.get(header, &#39;&#39;)
+            if value:
+                if header==&#39;Subject&#39;:
+                    # 需要解码Subject字符串:
+                    value = decode_str(value)
+                else:
+                    # 需要解码Email地址:
+                    hdr, addr = parseaddr(value)
+                    name = decode_str(hdr)
+                    value = u&#39;%s &lt;%s&gt;&#39; % (name, addr)
+            print(&#39;%s%s: %s&#39; % (&#39;  &#39; * indent, header, value))
+    if (msg.is_multipart()):
+        # 如果邮件对象是一个MIMEMultipart,
+        # get_payload()返回list，包含所有的子对象:
+        parts = msg.get_payload()
+        for n, part in enumerate(parts):
+            print(&#39;%spart %s&#39; % (&#39;  &#39; * indent, n))
+            print(&#39;%s--------------------&#39; % (&#39;  &#39; * indent))
+            # 递归打印每一个子对象:
+            print_info(part, indent + 1)
+    else:
+        # 邮件对象不是一个MIMEMultipart,
+        # 就根据content_type判断:
+        content_type = msg.get_content_type()
+        if content_type==&#39;text/plain&#39; or content_type==&#39;text/html&#39;:
+            # 纯文本或HTML内容:
+            content = msg.get_payload(decode=True)
+            # 要检测文本编码:
+            charset = guess_charset(msg)
+            if charset:
+                content = content.decode(charset)
+            print(&#39;%sText: %s&#39; % (&#39;  &#39; * indent, content + &#39;...&#39;))
+        else:
+            # 不是文本,作为附件处理:
+            print(&#39;%sAttachment: %s&#39; % (&#39;  &#39; * indent, content_type))
+</code></pre><p>邮件的Subject或者Email中包含的名字都是经过编码后的str，要正常显示，就必须decode：</p>
+<pre><code>def decode_str(s):
+    value, charset = decode_header(s)[0]
+    if charset:
+        value = value.decode(charset)
+    return value
+</code></pre><p><code>decode_header()</code>返回一个list，因为像<code>Cc</code>、<code>Bcc</code>这样的字段可能包含多个邮件地址，所以解析出来的会有多个元素。上面的代码我们偷了个懒，只取了第一个元素。</p>
+<p>文本邮件的内容也是str，还需要检测编码，否则，非UTF-8编码的邮件都无法正常显示：</p>
+<pre><code>def guess_charset(msg):
+    # 先从msg对象获取编码:
+    charset = msg.get_charset()
+    if charset is None:
+        # 如果获取不到，再从Content-Type字段获取:
+        content_type = msg.get(&#39;Content-Type&#39;, &#39;&#39;).lower()
+        pos = content_type.find(&#39;charset=&#39;)
+        if pos &gt;= 0:
+            charset = content_type[pos + 8:].strip()
+    return charset
+</code></pre><p>把上面的代码整理好，我们就可以来试试收取一封邮件。先往自己的邮箱发一封邮件，然后用浏览器登录邮箱，看看邮件收到没，如果收到了，我们就来用Python程序把它收到本地：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/0014082468380388be2ec29f6be43f5800fd84bd80fa446000" alt="pop3-sample-mail"></p>
+<p>运行程序，结果如下：</p>
+<pre><code>+OK Welcome to coremail Mail Pop3 Server (163coms[...])
+Messages: 126. Size: 27228317
+
+From: Test &lt;xxxxxx@qq.com&gt;
+To: Python爱好者 &lt;xxxxxx@163.com&gt;
+Subject: 用POP3收取邮件
+part 0
+--------------------
+  part 0
+  --------------------
+    Text: Python可以使用POP3收取邮件……...
+  part 1
+  --------------------
+    Text: Python可以&lt;a href=&quot;...&quot;&gt;使用POP3&lt;/a&gt;收取邮件……...
+part 1
+--------------------
+  Attachment: application/octet-stream
+</code></pre><p>我们从打印的结构可以看出，这封邮件是一个<code>MIMEMultipart</code>，它包含两部分：第一部分又是一个<code>MIMEMultipart</code>，第二部分是一个附件。而内嵌的<code>MIMEMultipart</code>是一个<code>alternative</code>类型，它包含一个纯文本格式的<code>MIMEText</code>和一个HTML格式的<code>MIMEText</code>。</p>
+<h3 id="-">小结</h3>
+<p>用Python的<code>poplib</code>模块收取邮件分两步：第一步是用POP3协议把邮件获取到本地，第二步是用<code>email</code>模块把原始邮件解析为<code>Message</code>对象，然后，用适当的形式把邮件内容展示给用户即可。</p>
+<p>源码参考：</p>
+<p><a href="https://github.com/michaelliao/learn-python/tree/master/email">https://github.com/michaelliao/learn-python/tree/master/email</a></p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

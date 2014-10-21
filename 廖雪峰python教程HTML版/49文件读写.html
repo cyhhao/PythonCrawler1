@@ -1,0 +1,76 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>文件读写</h4>
+                    <div class="x-wiki-info"><span>1714次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>读写文件是最常见的IO操作。Python内置了读写文件的函数，用法和C是兼容的。</p>
+<p>读写文件前，我们先必须了解一下，在磁盘上读写文件的功能都是由操作系统提供的，现代操作系统不允许普通的程序直接操作磁盘，所以，读写文件就是请求操作系统打开一个文件对象（通常称为文件描述符），然后，通过操作系统提供的接口从这个文件对象中读取数据（读文件），或者把数据写入这个文件对象（写文件）。</p>
+<h3 id="-">读文件</h3>
+<p>要以读文件的模式打开一个文件对象，使用Python内置的<code>open()</code>函数，传入文件名和标示符：</p>
+<pre><code>&gt;&gt;&gt; f = open(&#39;/Users/michael/test.txt&#39;, &#39;r&#39;)
+</code></pre><p>标示符&#39;r&#39;表示读，这样，我们就成功地打开了一个文件。</p>
+<p>如果文件不存在，<code>open()</code>函数就会抛出一个<code>IOError</code>的错误，并且给出错误码和详细的信息告诉你文件不存在：</p>
+<pre><code>&gt;&gt;&gt; f=open(&#39;/Users/michael/notfound.txt&#39;, &#39;r&#39;)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+IOError: [Errno 2] No such file or directory: &#39;/Users/michael/notfound.txt&#39;
+</code></pre><p>如果文件打开成功，接下来，调用<code>read()</code>方法可以一次读取文件的全部内容，Python把内容读到内存，用一个<code>str</code>对象表示：</p>
+<pre><code>&gt;&gt;&gt; f.read()
+&#39;Hello, world!&#39;
+</code></pre><p>最后一步是调用<code>close()</code>方法关闭文件。文件使用完毕后必须关闭，因为文件对象会占用操作系统的资源，并且操作系统同一时间能打开的文件数量也是有限的：</p>
+<pre><code>&gt;&gt;&gt; f.close()
+</code></pre><p>由于文件读写时都有可能产生<code>IOError</code>，一旦出错，后面的<code>f.close()</code>就不会调用。所以，为了保证无论是否出错都能正确地关闭文件，我们可以使用<code>try ... finally</code>来实现：</p>
+<pre><code>try:
+    f = open(&#39;/path/to/file&#39;, &#39;r&#39;)
+    print f.read()
+finally:
+    if f:
+        f.close()
+</code></pre><p>但是每次都这么写实在太繁琐，所以，Python引入了<code>with</code>语句来自动帮我们调用<code>close()</code>方法：</p>
+<pre><code>with open(&#39;/path/to/file&#39;, &#39;r&#39;) as f:
+    print f.read()
+</code></pre><p>这和前面的<code>try ... finally</code>是一样的，但是代码更佳简洁，并且不必调用<code>f.close()</code>方法。</p>
+<p>调用<code>read()</code>会一次性读取文件的全部内容，如果文件有10G，内存就爆了，所以，要保险起见，可以反复调用<code>read(size)</code>方法，每次最多读取size个字节的内容。另外，调用<code>readline()</code>可以每次读取一行内容，调用<code>readlines()</code>一次读取所有内容并按行返回<code>list</code>。因此，要根据需要决定怎么调用。</p>
+<p>如果文件很小，<code>read()</code>一次性读取最方便；如果不能确定文件大小，反复调用<code>read(size)</code>比较保险；如果是配置文件，调用<code>readlines()</code>最方便：</p>
+<pre><code>for line in f.readlines():
+    print(line.strip()) # 把末尾的&#39;\n&#39;删掉
+</code></pre><h3 id="file-like-object">file-like Object</h3>
+<p>像<code>open()</code>函数返回的这种有个<code>read()</code>方法的对象，在Python中统称为file-like Object。除了file外，还可以是内存的字节流，网络流，自定义流等等。file-like Object不要求从特定类继承，只要写个<code>read()</code>方法就行。</p>
+<p><code>StringIO</code>就是在内存中创建的file-like Object，常用作临时缓冲。</p>
+<h3 id="-">二进制文件</h3>
+<p>前面讲的默认都是读取文本文件，并且是ASCII编码的文本文件。要读取二进制文件，比如图片、视频等等，用<code>&#39;rb&#39;</code>模式打开文件即可：</p>
+<pre><code>&gt;&gt;&gt; f = open(&#39;/Users/michael/test.jpg&#39;, &#39;rb&#39;)
+&gt;&gt;&gt; f.read()
+&#39;\xff\xd8\xff\xe1\x00\x18Exif\x00\x00...&#39; # 十六进制表示的字节
+</code></pre><h3 id="-">字符编码</h3>
+<p>要读取非ASCII编码的文本文件，就必须以二进制模式打开，再解码。比如GBK编码的文件：</p>
+<pre><code>&gt;&gt;&gt; f = open(&#39;/Users/michael/gbk.txt&#39;, &#39;rb&#39;)
+&gt;&gt;&gt; u = f.read().decode(&#39;gbk&#39;)
+&gt;&gt;&gt; u
+u&#39;\u6d4b\u8bd5&#39;
+&gt;&gt;&gt; print u
+测试
+</code></pre><p>如果每次都这么手动转换编码嫌麻烦（写程序怕麻烦是好事，不怕麻烦就会写出又长又难懂又没法维护的代码），Python还提供了一个<code>codecs</code>模块帮我们在读文件时自动转换编码，直接读出unicode：</p>
+<pre><code>import codecs
+with codecs.open(&#39;/Users/michael/gbk.txt&#39;, &#39;r&#39;, &#39;gbk&#39;) as f:
+    f.read() # u&#39;\u6d4b\u8bd5&#39;
+</code></pre><h3 id="-">写文件</h3>
+<p>写文件和读文件是一样的，唯一区别是调用<code>open()</code>函数时，传入标识符<code>&#39;w&#39;</code>或者<code>&#39;wb&#39;</code>表示写文本文件或写二进制文件：</p>
+<pre><code>&gt;&gt;&gt; f = open(&#39;/Users/michael/test.txt&#39;, &#39;w&#39;)
+&gt;&gt;&gt; f.write(&#39;Hello, world!&#39;)
+&gt;&gt;&gt; f.close()
+</code></pre><p>你可以反复调用<code>write()</code>来写入文件，但是务必要调用<code>f.close()</code>来关闭文件。当我们写文件时，操作系统往往不会立刻把数据写入磁盘，而是放到内存缓存起来，空闲的时候再慢慢写入。只有调用<code>close()</code>方法时，操作系统才保证把没有写入的数据全部写入磁盘。忘记调用<code>close()</code>的后果是数据可能只写了一部分到磁盘，剩下的丢失了。所以，还是用<code>with</code>语句来得保险：</p>
+<pre><code>with open(&#39;/Users/michael/test.txt&#39;, &#39;w&#39;) as f:
+    f.write(&#39;Hello, world!&#39;)
+</code></pre><p>要写入特定编码的文本文件，请效仿<code>codecs</code>的示例，写入unicode，由<code>codecs</code>自动转换成指定编码。</p>
+<h3 id="-">小结</h3>
+<p>在Python中，文件读写是通过<code>open()</code>函数打开的文件对象完成的。使用<code>with</code>语句操作文件IO是个好习惯。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

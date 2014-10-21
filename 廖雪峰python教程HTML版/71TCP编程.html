@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>TCP编程</h4>
+                    <div class="x-wiki-info"><span>1152次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>Socket是网络编程的一个抽象概念。通常我们用一个Socket表示“打开了一个网络链接”，而打开一个Socket需要知道目标计算机的IP地址和端口号，再指定协议类型即可。</p>
+<h3 id="-">客户端</h3>
+<p>大多数连接都是可靠的TCP连接。创建TCP连接时，主动发起连接的叫客户端，被动响应连接的叫服务器。</p>
+<p>举个例子，当我们在浏览器中访问新浪时，我们自己的计算机就是客户端，浏览器会主动向新浪的服务器发起连接。如果一切顺利，新浪的服务器接受了我们的连接，一个TCP连接就建立起来的，后面的通信就是发送网页内容了。</p>
+<p>所以，我们要创建一个基于TCP连接的Socket，可以这样做：</p>
+<pre><code># 导入socket库:
+import socket
+# 创建一个socket:
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 建立连接:
+s.connect((&#39;www.sina.com.cn&#39;, 80))
+</code></pre><p>创建<code>Socket</code>时，<code>AF_INET</code>指定使用IPv4协议，如果要用更先进的IPv6，就指定为<code>AF_INET6</code>。<code>SOCK_STREAM</code>指定使用面向流的TCP协议，这样，一个<code>Socket</code>对象就创建成功，但是还没有建立连接。</p>
+<p>客户端要主动发起TCP连接，必须知道服务器的IP地址和端口号。新浪网站的IP地址可以用域名<code>www.sina.com.cn</code>自动转换到IP地址，但是怎么知道新浪服务器的端口号呢？</p>
+<p>答案是作为服务器，提供什么样的服务，端口号就必须固定下来。由于我们想要访问网页，因此新浪提供网页服务的服务器必须把端口号固定在<code>80</code>端口，因为<code>80</code>端口是Web服务的标准端口。其他服务都有对应的标准端口号，例如SMTP服务是25端口，FTP服务是21端口，等等。端口号小于1024的是Internet标准服务的端口，端口号大于1024的，可以任意使用。</p>
+<p>因此，我们连接新浪服务器的代码如下：</p>
+<pre><code>s.connect((&#39;www.sina.com.cn&#39;, 80))
+</code></pre><p>注意参数是一个tuple，包含地址和端口号。</p>
+<p>建立TCP连接后，我们就可以向新浪服务器发送请求，要求返回首页的内容：</p>
+<pre><code># 发送数据:
+s.send(&#39;GET / HTTP/1.1\r\nHost: www.sina.com.cn\r\nConnection: close\r\n\r\n&#39;)
+</code></pre><p>TCP连接创建的是双向通道，双方都可以同时给对方发数据。但是谁先发谁后发，怎么协调，要根据具体的协议来决定。例如，HTTP协议规定客户端必须先发请求给服务器，服务器收到后才发数据给客户端。</p>
+<p>发送的文本格式必须符合HTTP标准，如果格式没问题，接下来就可以接收新浪服务器返回的数据了：</p>
+<pre><code># 接收数据:
+buffer = []
+while True:
+    # 每次最多接收1k字节:
+    d = s.recv(1024)
+    if d:
+        buffer.append(d)
+    else:
+        break
+data = &#39;&#39;.join(buffer)
+</code></pre><p>接收数据时，调用<code>recv(max)</code>方法，一次最多接收指定的字节数，因此，在一个while循环中反复接收，直到<code>recv()</code>返回空数据，表示接收完毕，退出循环。</p>
+<p>当我们接收完数据后，调用<code>close()</code>方法关闭Socket，这样，一次完整的网络通信就结束了：</p>
+<pre><code># 关闭连接:
+s.close()
+</code></pre><p>接收到的数据包括HTTP头和网页本身，我们只需要把HTTP头和网页分离一下，把HTTP头打印出来，网页内容保存到文件：</p>
+<pre><code>header, html = data.split(&#39;\r\n\r\n&#39;, 1)
+print header
+# 把接收的数据写入文件:
+with open(&#39;sina.html&#39;, &#39;wb&#39;) as f:
+    f.write(html)
+</code></pre><p>现在，只需要在浏览器中打开这个<code>sina.html</code>文件，就可以看到新浪的首页了。</p>
+<h3 id="-">服务器</h3>
+<p>和客户端编程相比，服务器编程就要复杂一些。</p>
+<p>服务器进程首先要绑定一个端口并监听来自其他客户端的连接。如果某个客户端连接过来了，服务器就分配一个随机端口号与该客户端建立连接，随后的通信就靠这个端口了。</p>
+<p>所以，服务器会打开固定端口（比如80）监听，每来一个客户端连接，就打开一个新端口号创建该连接。由于服务器会有大量来自客户端的连接，但是每个连接都会分配不同的端口号，所以，服务器要给哪个客户端发数据，只要发到分配的端口就行。</p>
+<p>但是服务器还需要同时响应多个客户端的请求，所以，每个连接都需要一个新的进程或者新的线程来处理，否则，服务器一次就只能服务一个客户端了。</p>
+<p>我们来编写一个简单的服务器程序，它接收客户端连接，把客户端发过来的字符串加上<code>Hello</code>再发回去。</p>
+<p>首先，创建一个基于IPv4和TCP协议的Socket：</p>
+<pre><code>s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+</code></pre><p>然后，我们要绑定监听的地址和端口。服务器可能有多块网卡，可以绑定到某一块网卡的IP地址上，也可以用<code>0.0.0.0</code>绑定到所有的网络地址，还可以用<code>127.0.0.1</code>绑定到本机地址。<code>127.0.0.1</code>是一个特殊的IP地址，表示本机地址，如果绑定到这个地址，客户端必须同时在本机运行才能连接，也就是说，外部的计算机无法连接进来。</p>
+<p>端口号需要预先指定。因为我们写的这个服务不是标准服务，所以用<code>9999</code>这个端口号。请注意，小于<code>1024</code>的端口号必须要有管理员权限才能绑定：</p>
+<pre><code># 监听端口:
+s.bind((&#39;127.0.0.1&#39;, 9999))
+</code></pre><p>紧接着，调用<code>listen()</code>方法开始监听端口，传入的参数指定等待连接的最大数量：</p>
+<pre><code>s.listen(5)
+print &#39;Waiting for connection...&#39;
+</code></pre><p>接下来，服务器程序通过一个永久循环来接受来自客户端的连接，<code>accept()</code>会等待并返回一个客户端的连接:</p>
+<pre><code>while True:
+    # 接受一个新连接:
+    sock, addr = s.accept()
+    # 创建新线程来处理TCP连接:
+    t = threading.Thread(target=tcplink, args=(sock, addr))
+    t.start()
+</code></pre><p>每个连接都必须创建新线程（或进程）来处理，否则，单线程在处理连接的过程中，无法接受其他客户端的连接：</p>
+<pre><code>def tcplink(sock, addr):
+    print &#39;Accept new connection from %s:%s...&#39; % addr
+    sock.send(&#39;Welcome!&#39;)
+    while True:
+        data = sock.recv(1024)
+        time.sleep(1)
+        if data == &#39;exit&#39; or not data:
+            break
+        sock.send(&#39;Hello, %s!&#39; % data)
+    sock.close()
+    print &#39;Connection from %s:%s closed.&#39; % addr
+</code></pre><p>连接建立后，服务器首先发一条欢迎消息，然后等待客户端数据，并加上<code>Hello</code>再发送给客户端。如果客户端发送了<code>exit</code>字符串，就直接关闭连接。</p>
+<p>要测试这个服务器程序，我们还需要编写一个客户端程序：</p>
+<pre><code>s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 建立连接:
+s.connect((&#39;127.0.0.1&#39;, 9999))
+# 接收欢迎消息:
+print s.recv(1024)
+for data in [&#39;Michael&#39;, &#39;Tracy&#39;, &#39;Sarah&#39;]:
+    # 发送数据:
+    s.send(data)
+    print s.recv(1024)
+s.send(&#39;exit&#39;)
+s.close()
+</code></pre><p>我们需要打开两个命令行窗口，一个运行服务器程序，另一个运行客户端程序，就可以看到效果了：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001410425071613d61a12d8f77b4cf8ad20c0b3233782b9000" alt="client-server"></p>
+<p>需要注意的是，客户端程序运行完毕就退出了，而服务器程序会永远运行下去，必须按Ctrl+C退出程序。</p>
+<h3 id="-">小结</h3>
+<p>用TCP协议进行Socket编程在Python中十分简单，对于客户端，要主动连接服务器的IP和指定端口，对于服务器，要首先监听指定端口，然后，对每一个新的连接，创建一个线程或进程来处理。通常，服务器程序会无限运行下去。</p>
+<p>同一个端口，被一个Socket绑定了以后，就不能被别的Socket绑定了。</p>
+<p>源码参考：<a href="https://github.com/michaelliao/learn-python/tree/master/socket">https://github.com/michaelliao/learn-python/tree/master/socket</a></p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

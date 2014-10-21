@@ -1,0 +1,55 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>安装第三方模块</h4>
+                    <div class="x-wiki-info"><span>1986次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>在Python中，安装第三方模块，是通过setuptools这个工具完成的。</p>
+<p>如果你正在使用Mac或Linux，安装setuptools本身这个步骤就可以跳过了。</p>
+<p>如果你正在使用Windows，请首先从这个地址下载<strong>ez_setup.py</strong>：</p>
+<p><a href="https://pypi.python.org/pypi/setuptools#windows">https://pypi.python.org/pypi/setuptools#windows</a></p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/00138932989787044b4f8e7354d43b08be83e3558b90db4000/0" alt="download_ez_setup.py"></p>
+<p>下载后，随便放到一个目录下，然后运行以下命令来安装setuptools：</p>
+<pre><code>python ez_setup.py
+</code></pre><p><div data-type="video" data-width="664" data-height="434" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/install-setuptools.mp4"></div></p>
+
+<p>在命令提示符窗口下尝试运行<code>easy_install</code>，Windows会提示未找到命令，原因是<code>easy_install.exe</code>所在路径还没有被添加到环境变量<code>Path</code>中。请添加<code>C:\Python27\Scripts</code>到环境变量<code>Path</code>：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001389330647210b7f16df0619d4763ac565377880d66e3000/0" alt="add-path-for-py-scripts"></p>
+<p>重新打开命令提示符窗口，就可以运行<code>easy_install</code>了：</p>
+<p>现在，让我们来安装一个第三方库——Python Imaging Library，这是Python下非常强大的处理图像的工具库。一般来说，第三方库都会在Python官方的<a href="https://pypi.python.org/">pypi.python.org</a>网站注册，要安装一个第三方库，必须先知道该库的名称，可以在官网或者pypi上搜索，比如Python Imaging Library的名称叫PIL，因此，安装Python Imaging Library的命令就是：</p>
+<pre><code>easy_install PIL
+</code></pre><p><div data-type="video" data-width="664" data-height="434" data-src="http://www.liaoxuefeng.comhttp://liaoxuefeng-liaoxuefeng.stor.sinaapp.com/learnpython/video/install-PIL.mp4"></div></p>
+
+<p>耐心等待下载并安装后，就可以使用PIL了。</p>
+<p>有了PIL，处理图片易如反掌。随便找个图片生成缩略图：</p>
+<pre><code>&gt;&gt;&gt; import Image
+&gt;&gt;&gt; im = Image.open(&#39;test.png&#39;)
+&gt;&gt;&gt; print im.format, im.size, im.mode
+PNG (400, 300) RGB
+&gt;&gt;&gt; im.thumbnail((200, 100))
+&gt;&gt;&gt; im.save(&#39;thumb.jpg&#39;, &#39;JPEG&#39;)
+</code></pre><p>其他常用的第三方库还有MySQL的驱动：<code>MySQL-python</code>，用于科学计算的NumPy库：<code>numpy</code>，用于生成文本的模板工具<code>Jinja2</code>，等等。</p>
+<h3 id="-">模块搜索路径</h3>
+<p>当我们试图加载一个模块时，Python会在指定的路径下搜索对应的.py文件，如果找不到，就会报错：</p>
+<pre><code>&gt;&gt;&gt; import mymodule
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+ImportError: No module named mymodule
+</code></pre><p>默认情况下，Python解释器会搜索当前目录、所有已安装的内置模块和第三方模块，搜索路径存放在<code>sys</code>模块的<code>path</code>变量中：</p>
+<pre><code>&gt;&gt;&gt; import sys
+&gt;&gt;&gt; sys.path
+[&#39;&#39;, &#39;/Library/Python/2.7/site-packages/pycrypto-2.6.1-py2.7-macosx-10.9-intel.egg&#39;, &#39;/Library/Python/2.7/site-packages/PIL-1.1.7-py2.7-macosx-10.9-intel.egg&#39;, ...]
+</code></pre><p>如果我们要添加自己的搜索目录，有两种方法：</p>
+<p>一是直接修改<code>sys.path</code>，添加要搜索的目录：</p>
+<pre><code>&gt;&gt;&gt; import sys
+&gt;&gt;&gt; sys.path.append(&#39;/Users/michael/my_py_scripts&#39;)
+</code></pre><p>这种方法是在运行时修改，运行结束后失效。</p>
+<p>第二种方法是设置环境变量<code>PYTHONPATH</code>，该环境变量的内容会被自动添加到模块搜索路径中。设置方式与设置Path环境变量类似。注意只需要添加你自己的搜索路径，Python自己本身的搜索路径不受影响。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

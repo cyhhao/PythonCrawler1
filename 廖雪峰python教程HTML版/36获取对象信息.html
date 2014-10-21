@@ -1,0 +1,161 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>获取对象信息</h4>
+                    <div class="x-wiki-info"><span>1435次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>当我们拿到一个对象的引用时，如何知道这个对象是什么类型、有哪些方法呢？</p>
+<h3 id="-type-">使用type()</h3>
+<p>首先，我们来判断对象类型，使用<code>type()</code>函数：</p>
+<p>基本类型都可以用<code>type()</code>判断：</p>
+<pre><code>&gt;&gt;&gt; type(123)
+&lt;type &#39;int&#39;&gt;
+&gt;&gt;&gt; type(&#39;str&#39;)
+&lt;type &#39;str&#39;&gt;
+&gt;&gt;&gt; type(None)
+&lt;type &#39;NoneType&#39;&gt;
+</code></pre><p>如果一个变量指向函数或者类，也可以用<code>type()</code>判断：</p>
+<pre><code>&gt;&gt;&gt; type(abs)
+&lt;type &#39;builtin_function_or_method&#39;&gt;
+&gt;&gt;&gt; type(a)
+&lt;class &#39;__main__.Animal&#39;&gt;
+</code></pre><p>但是<code>type()</code>函数返回的是什么类型呢？它返回type类型。如果我们要在<code>if</code>语句中判断，就需要比较两个变量的type类型是否相同：</p>
+<pre><code>&gt;&gt;&gt; type(123)==type(456)
+True
+&gt;&gt;&gt; type(&#39;abc&#39;)==type(&#39;123&#39;)
+True
+&gt;&gt;&gt; type(&#39;abc&#39;)==type(123)
+False
+</code></pre><p>但是这种写法太麻烦，Python把每种type类型都定义好了常量，放在<code>types</code>模块里，使用之前，需要先导入：</p>
+<pre><code>&gt;&gt;&gt; import types
+&gt;&gt;&gt; type(&#39;abc&#39;)==types.StringType
+True
+&gt;&gt;&gt; type(u&#39;abc&#39;)==types.UnicodeType
+True
+&gt;&gt;&gt; type([])==types.ListType
+True
+&gt;&gt;&gt; type(str)==types.TypeType
+True
+</code></pre><p>最后注意到有一种类型就叫<code>TypeType</code>，所有类型本身的类型就是<code>TypeType</code>，比如：</p>
+<pre><code>&gt;&gt;&gt; type(int)==type(str)==types.TypeType
+True
+</code></pre><h3 id="-isinstance-">使用isinstance()</h3>
+<p>对于class的继承关系来说，使用type()就很不方便。我们要判断class的类型，可以使用<code>isinstance()</code>函数。</p>
+<p>我们回顾上次的例子，如果继承关系是：</p>
+<pre><code>object -&gt; Animal -&gt; Dog -&gt; Husky
+</code></pre><p>那么，<code>isinstance()</code>就可以告诉我们，一个对象是否是某种类型。先创建3种类型的对象：</p>
+<pre><code>&gt;&gt;&gt; a = Animal()
+&gt;&gt;&gt; d = Dog()
+&gt;&gt;&gt; h = Husky()
+</code></pre><p>然后，判断：</p>
+<pre><code>&gt;&gt;&gt; isinstance(h, Husky)
+True
+</code></pre><p>没有问题，因为<code>h</code>变量指向的就是Husky对象。</p>
+<p>再判断：</p>
+<pre><code>&gt;&gt;&gt; isinstance(h, Dog)
+True
+</code></pre><p><code>h</code>虽然自身是Husky类型，但由于Husky是从Dog继承下来的，所以，<code>h</code>也还是Dog类型。换句话说，<code>isinstance()</code>判断的是一个对象是否是该类型本身，或者位于该类型的父继承链上。</p>
+<p>因此，我们可以确信，<code>h</code>还是Animal类型：</p>
+<pre><code>&gt;&gt;&gt; isinstance(h, Animal)
+True
+</code></pre><p>同理，实际类型是Dog的<code>d</code>也是Animal类型：</p>
+<pre><code>&gt;&gt;&gt; isinstance(d, Dog) and isinstance(d, Animal)
+True
+</code></pre><p>但是，<code>d</code>不是Husky类型：</p>
+<pre><code>&gt;&gt;&gt; isinstance(d, Husky)
+False
+</code></pre><p>能用<code>type()</code>判断的基本类型也可以用<code>isinstance()</code>判断：</p>
+<pre><code>&gt;&gt;&gt; isinstance(&#39;a&#39;, str)
+True
+&gt;&gt;&gt; isinstance(u&#39;a&#39;, unicode)
+True
+&gt;&gt;&gt; isinstance(&#39;a&#39;, unicode)
+False
+</code></pre><p>并且还可以判断一个变量是否是某些类型中的一种，比如下面的代码就可以判断是否是str或者unicode：</p>
+<pre><code>&gt;&gt;&gt; isinstance(&#39;a&#39;, (str, unicode))
+True
+&gt;&gt;&gt; isinstance(u&#39;a&#39;, (str, unicode))
+True
+</code></pre><p>由于<code>str</code>和<code>unicode</code>都是从<code>basestring</code>继承下来的，所以，还可以把上面的代码简化为：</p>
+<pre><code>&gt;&gt;&gt; isinstance(u&#39;a&#39;, basestring)
+True
+</code></pre><h3 id="-dir-">使用dir()</h3>
+<p>如果要获得一个对象的所有属性和方法，可以使用<code>dir()</code>函数，它返回一个包含字符串的list，比如，获得一个str对象的所有属性和方法：</p>
+<pre><code>&gt;&gt;&gt; dir(&#39;ABC&#39;)
+[&#39;__add__&#39;, &#39;__class__&#39;, &#39;__contains__&#39;, &#39;__delattr__&#39;, &#39;__doc__&#39;, &#39;__eq__&#39;, &#39;__format__&#39;, &#39;__ge__&#39;, &#39;__getattribute__&#39;, &#39;__getitem__&#39;, &#39;__getnewargs__&#39;, &#39;__getslice__&#39;, &#39;__gt__&#39;, &#39;__hash__&#39;, &#39;__init__&#39;, &#39;__le__&#39;, &#39;__len__&#39;, &#39;__lt__&#39;, &#39;__mod__&#39;, &#39;__mul__&#39;, &#39;__ne__&#39;, &#39;__new__&#39;, &#39;__reduce__&#39;, &#39;__reduce_ex__&#39;, &#39;__repr__&#39;, &#39;__rmod__&#39;, &#39;__rmul__&#39;, &#39;__setattr__&#39;, &#39;__sizeof__&#39;, &#39;__str__&#39;, &#39;__subclasshook__&#39;, &#39;_formatter_field_name_split&#39;, &#39;_formatter_parser&#39;, &#39;capitalize&#39;, &#39;center&#39;, &#39;count&#39;, &#39;decode&#39;, &#39;encode&#39;, &#39;endswith&#39;, &#39;expandtabs&#39;, &#39;find&#39;, &#39;format&#39;, &#39;index&#39;, &#39;isalnum&#39;, &#39;isalpha&#39;, &#39;isdigit&#39;, &#39;islower&#39;, &#39;isspace&#39;, &#39;istitle&#39;, &#39;isupper&#39;, &#39;join&#39;, &#39;ljust&#39;, &#39;lower&#39;, &#39;lstrip&#39;, &#39;partition&#39;, &#39;replace&#39;, &#39;rfind&#39;, &#39;rindex&#39;, &#39;rjust&#39;, &#39;rpartition&#39;, &#39;rsplit&#39;, &#39;rstrip&#39;, &#39;split&#39;, &#39;splitlines&#39;, &#39;startswith&#39;, &#39;strip&#39;, &#39;swapcase&#39;, &#39;title&#39;, &#39;translate&#39;, &#39;upper&#39;, &#39;zfill&#39;]
+</code></pre><p>类似<code>__xxx__</code>的属性和方法在Python中都是有特殊用途的，比如<code>__len__</code>方法返回长度。在Python中，如果你调用<code>len()</code>函数试图获取一个对象的长度，实际上，在<code>len()</code>函数内部，它自动去调用该对象的<code>__len__()</code>方法，所以，下面的代码是等价的：</p>
+<pre><code>&gt;&gt;&gt; len(&#39;ABC&#39;)
+3
+&gt;&gt;&gt; &#39;ABC&#39;.__len__()
+3
+</code></pre><p>我们自己写的类，如果也想用<code>len(myObj)</code>的话，就自己写一个<code>__len__()</code>方法：</p>
+<pre><code>&gt;&gt;&gt; class MyObject(object):
+...     def __len__(self):
+...         return 100
+...
+&gt;&gt;&gt; obj = MyObject()
+&gt;&gt;&gt; len(obj)
+100
+</code></pre><p>剩下的都是普通属性或方法，比如<code>lower()</code>返回小写的字符串：</p>
+<pre><code>&gt;&gt;&gt; &#39;ABC&#39;.lower()
+&#39;abc&#39;
+</code></pre><p>仅仅把属性和方法列出来是不够的，配合<code>getattr()</code>、<code>setattr()</code>以及<code>hasattr()</code>，我们可以直接操作一个对象的状态：</p>
+<pre><code>&gt;&gt;&gt; class MyObject(object):
+...     def __init__(self):
+...         self.x = 9
+...     def power(self):
+...         return self.x * self.x
+...
+&gt;&gt;&gt; obj = MyObject()
+</code></pre><p>紧接着，可以测试该对象的属性：</p>
+<pre><code>&gt;&gt;&gt; hasattr(obj, &#39;x&#39;) # 有属性&#39;x&#39;吗？
+True
+&gt;&gt;&gt; obj.x
+9
+&gt;&gt;&gt; hasattr(obj, &#39;y&#39;) # 有属性&#39;y&#39;吗？
+False
+&gt;&gt;&gt; setattr(obj, &#39;y&#39;, 19) # 设置一个属性&#39;y&#39;
+&gt;&gt;&gt; hasattr(obj, &#39;y&#39;) # 有属性&#39;y&#39;吗？
+True
+&gt;&gt;&gt; getattr(obj, &#39;y&#39;) # 获取属性&#39;y&#39;
+19
+&gt;&gt;&gt; obj.y # 获取属性&#39;y&#39;
+19
+</code></pre><p>如果试图获取不存在的属性，会抛出AttributeError的错误：</p>
+<pre><code>&gt;&gt;&gt; getattr(obj, &#39;z&#39;) # 获取属性&#39;z&#39;
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: &#39;MyObject&#39; object has no attribute &#39;z&#39;
+</code></pre><p>可以传入一个default参数，如果属性不存在，就返回默认值：</p>
+<pre><code>&gt;&gt;&gt; getattr(obj, &#39;z&#39;, 404) # 获取属性&#39;z&#39;，如果不存在，返回默认值404
+404
+</code></pre><p>也可以获得对象的方法：</p>
+<pre><code>&gt;&gt;&gt; hasattr(obj, &#39;power&#39;) # 有属性&#39;power&#39;吗？
+True
+&gt;&gt;&gt; getattr(obj, &#39;power&#39;) # 获取属性&#39;power&#39;
+&lt;bound method MyObject.power of &lt;__main__.MyObject object at 0x108ca35d0&gt;&gt;
+&gt;&gt;&gt; fn = getattr(obj, &#39;power&#39;) # 获取属性&#39;power&#39;并赋值到变量fn
+&gt;&gt;&gt; fn # fn指向obj.power
+&lt;bound method MyObject.power of &lt;__main__.MyObject object at 0x108ca35d0&gt;&gt;
+&gt;&gt;&gt; fn() # 调用fn()与调用obj.power()是一样的
+81
+</code></pre><h3 id="-">小结</h3>
+<p>通过内置的一系列函数，我们可以对任意一个Python对象进行剖析，拿到其内部的数据。要注意的是，只有在不知道对象信息的时候，我们才会去获取对象信息。如果可以直接写：</p>
+<pre><code>sum = obj.x + obj.y
+</code></pre><p>就不要写：</p>
+<pre><code>sum = getattr(obj, &#39;x&#39;) + getattr(obj, &#39;y&#39;)
+</code></pre><p>一个正确的用法的例子如下：</p>
+<pre><code>def readImage(fp):
+    if hasattr(fp, &#39;read&#39;):
+        return readData(fp)
+    return None
+</code></pre><p>假设我们希望从文件流fp中读取图像，我们首先要判断该fp对象是否存在read方法，如果存在，则该对象是一个流，如果不存在，则无法读取。<code>hasattr()</code>就派上了用场。</p>
+<p>请注意，在Python这类动态语言中，有<code>read()</code>方法，不代表该fp对象就是一个文件流，它也可能是网络流，也可能是内存中的一个字节流，但只要<code>read()</code>方法返回的是有效的图像数据，就不影响读取图像的功能。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    

@@ -1,0 +1,78 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+                    <h4>HTML简介</h4>
+                    <div class="x-wiki-info"><span>694次阅读</span></div>
+                    <hr style="border-top-color:#ccc" />
+                    <div class="x-wiki-content x-content"><p>网页就是HTML？这么理解大概没错。因为网页中不但包含文字，还有图片、视频、Flash小游戏，有复杂的排版、动画效果，所以，HTML定义了一套语法规则，来告诉浏览器如何把一个丰富多彩的页面显示出来。</p>
+<p>HTML长什么样？上次我们看了新浪首页的HTML源码，如果仔细数数，竟然有6000多行！</p>
+<p>所以，学HTML，就不要指望从新浪入手了。我们来看看最简单的HTML长什么样：</p>
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Hello&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello, world!&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>可以用文本编辑器编写HTML，然后保存为<code>hello.html</code>，双击或者把文件拖到浏览器中，就可以看到效果：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001399951725718d626f4dcf1dc413f9f6cb0beb01197a3000" alt="hello.html"></p>
+<p>HTML文档就是一系列的Tag组成，最外层的Tag是<code>&lt;html&gt;</code>。规范的HTML也包含<code>&lt;head&gt;...&lt;/head&gt;</code>和<code>&lt;body&gt;...&lt;/body&gt;</code>（注意不要和HTTP的Header、Body搞混了），由于HTML是富文档模型，所以，还有一系列的Tag用来表示链接、图片、表格、表单等等。</p>
+<h3 id="css-">CSS简介</h3>
+<p>CSS是Cascading Style Sheets（层叠样式表）的简称，CSS用来控制HTML里的所有元素如何展现，比如，给标题元素<code>&lt;h1&gt;</code>加一个样式，变成48号字体，灰色，带阴影：</p>
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Hello&lt;/title&gt;
+  &lt;style&gt;
+    h1 {
+      color: #333333;
+      font-size: 48px;
+      text-shadow: 3px 3px 3px #666666;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello, world!&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>效果如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001399952478883a75efbe8e0e54ba39998f59c48672749000" alt="hello-css"></p>
+<h3 id="javascript-">JavaScript简介</h3>
+<p>JavaScript虽然名称有个Java，但它和Java真的一点关系没有。JavaScript是为了让HTML具有交互性而作为脚本语言添加的，JavaScript既可以内嵌到HTML中，也可以从外部链接到HTML中。如果我们希望当用户点击标题时把标题变成红色，就必须通过JavaScript来实现：</p>
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Hello&lt;/title&gt;
+  &lt;style&gt;
+    h1 {
+      color: #333333;
+      font-size: 48px;
+      text-shadow: 3px 3px 3px #666666;
+    }
+  &lt;/style&gt;
+  &lt;script&gt;
+    function change() {
+      document.getElementsByTagName(&#39;h1&#39;)[0].style.color = &#39;#ff0000&#39;;
+    }
+  &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 onclick=&quot;change()&quot;&gt;Hello, world!&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p>效果如下：</p>
+<p><img src="http://www.liaoxuefeng.com/files/attachments/001399952973251fa6c05033b4e4163927da082945b1388000" alt="hello-js-change-color"></p>
+<h3 id="-">小结</h3>
+<p>如果要学习Web开发，首先要对HTML、CSS和JavaScript作一定的了解。HTML定义了页面的内容，CSS来控制页面元素的样式，而JavaScript负责页面的交互逻辑。</p>
+<p>讲解HTML、CSS和JavaScript就可以写3本书，对于优秀的Web开发人员来说，精通HTML、CSS和JavaScript是必须的，这里推荐一个在线学习网站w3schools：</p>
+<p><a href="http://www.w3schools.com/">http://www.w3schools.com/</a></p>
+<p>以及一个对应的中文版本：</p>
+<p><a href="http://www.w3school.com.cn/">http://www.w3school.com.cn/</a></p>
+<p>当我们用Python或者其他语言开发Web应用时，我们就是要在服务器端动态创建出HTML，这样，浏览器就会向不同的用户显示出不同的Web页面。</p>
+</div>
+
+                    <hr style="border-top-color:#ccc" />
+
+                    
