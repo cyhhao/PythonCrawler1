@@ -71,13 +71,17 @@
 
 # 最后
 
-最后附上廖雪峰的教程：[链接][1]
+附上HTML转epub电子书格式在线链接：[html.toepub.com][2]
 
+以及廖雪峰的教程：[链接][1]
 廖雪峰的Git教程也非常非常的不错哦~
 
-顺便扩充一下自己的[GitHub][2]喽
 
+
+
+顺便扩充一下自己的→_→[GitHub][3]（爬下来的html也在github上哦~）
 
 
   [1]: http://www.liaoxuefeng.com/wiki/001374738125095c955c1e6d8bb493182103fac9270762a000
-  [2]: https://github.com/cyhhao/PythonCrawler1
+  [2]: http://html.toepub.com/
+  [3]: https://github.com/cyhhao/PythonCrawler1
